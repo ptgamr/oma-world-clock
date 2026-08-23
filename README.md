@@ -37,7 +37,9 @@ omarchy bar move io.github.ptgamr.world-clock --section right
 
 ## Use
 
-Click `󰥔  4` in the bar to open the planner.
+Click the world-clock count in the bar to open the planner. The initial set
+contains Wellington, London, New York, Ho Chi Minh, Berlin, Hanoi, and Pacific
+Time (`America/Los_Angeles`, so it follows PST/PDT automatically).
 
 - Drag or scroll the slider to move all clocks in 15-minute steps.
 - Press Left/Right for 15 minutes; hold Shift for one hour.

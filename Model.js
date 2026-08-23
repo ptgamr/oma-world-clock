@@ -5,7 +5,10 @@ var DEFAULT_LOCATIONS = [
   { id: "home", name: "Wellington", timezone: "Pacific/Auckland", isHome: true },
   { id: "london", name: "London", timezone: "Europe/London", isHome: false },
   { id: "new-york", name: "New York", timezone: "America/New_York", isHome: false },
-  { id: "ho-chi-minh", name: "Ho Chi Minh", timezone: "Asia/Ho_Chi_Minh", isHome: false }
+  { id: "ho-chi-minh", name: "Ho Chi Minh", timezone: "Asia/Ho_Chi_Minh", isHome: false },
+  { id: "berlin", name: "Berlin", timezone: "Europe/Berlin", isHome: false },
+  { id: "hanoi", name: "Hanoi", timezone: "Asia/Ho_Chi_Minh", isHome: false },
+  { id: "pacific-time", name: "Pacific Time", timezone: "America/Los_Angeles", isHome: false }
 ]
 
 function cleanText(value) {

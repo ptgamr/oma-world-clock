@@ -2,8 +2,11 @@ const assert = require("node:assert/strict")
 const Model = require("../Model.js")
 
 const defaults = Model.defaultLocations()
-assert.equal(defaults.length, 4)
+assert.equal(defaults.length, 7)
 assert.equal(Model.homeLocation(defaults).timezone, "Pacific/Auckland")
+assert.equal(defaults.find(location => location.id === "berlin").timezone, "Europe/Berlin")
+assert.equal(defaults.find(location => location.id === "hanoi").timezone, "Asia/Ho_Chi_Minh")
+assert.equal(defaults.find(location => location.id === "pacific-time").timezone, "America/Los_Angeles")
 
 const duplicateHomes = Model.normalizeLocations([
   { id: "one", name: "One", timezone: "Pacific/Auckland", isHome: true },
