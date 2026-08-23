@@ -1,0 +1,296 @@
+#!/usr/bin/env python3
+"""Small JSON-speaking timezone helper for the Omarchy world-clock plugin.
+
+Only the standard library is used. All conversion is delegated to zoneinfo,
+which reads the system IANA timezone database and therefore applies the rules
+for the exact instant being planned.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from datetime import UTC, date, datetime, time, timedelta
+from pathlib import Path
+from typing import Any
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError, available_timezones
+
+
+WEEKDAYS = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+MONTHS = (
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+)
+POPULAR_ZONES = (
+    "Pacific/Auckland",
+    "Australia/Sydney",
+    "Australia/Adelaide",
+    "Asia/Singapore",
+    "Asia/Ho_Chi_Minh",
+    "Asia/Kolkata",
+    "Asia/Kathmandu",
+    "Europe/London",
+    "Europe/Berlin",
+    "America/New_York",
+    "America/Chicago",
+    "America/Los_Angeles",
+)
+
+
+class InputError(ValueError):
+    """Raised for a bad CLI request that should be shown in the panel."""
+
+
+def zone(zone_name: str) -> ZoneInfo:
+    try:
+        return ZoneInfo(zone_name)
+    except ZoneInfoNotFoundError as error:
+        raise InputError(f"Unknown timezone: {zone_name}") from error
+
+
+def offset_minutes(value: datetime) -> int:
+    offset = value.utcoffset()
+    return int(offset.total_seconds() // 60) if offset is not None else 0
+
+
+def date_label(value: date) -> str:
+    return f"{WEEKDAYS[value.weekday()]} {value.day} {MONTHS[value.month - 1]} {value.year}"
+
+
+def day_relation(value: date, home_date: date) -> str:
+    difference = (value - home_date).days
+    if difference == -1:
+        return "Yesterday"
+    if difference == 0:
+        return "Today"
+    if difference == 1:
+        return "Tomorrow"
+    return date_label(value)
+
+
+def render_locations(timestamp_ms: int | float, locations: list[dict[str, Any]]) -> dict[str, Any]:
+    if not locations:
+        raise InputError("At least one location is required")
+
+    instant = datetime.fromtimestamp(float(timestamp_ms) / 1000, UTC)
+    home_location = next((item for item in locations if item.get("isHome")), locations[0])
+    home_zone = zone(str(home_location.get("timezone", "")))
+    home_time = instant.astimezone(home_zone)
+    home_offset = offset_minutes(home_time)
+
+    rows: list[dict[str, Any]] = []
+    for location in locations:
+        zone_name = str(location.get("timezone", ""))
+        local = instant.astimezone(zone(zone_name))
+        local_offset = offset_minutes(local)
+        rows.append(
+            {
+                "id": str(location.get("id", "")),
+                "name": str(location.get("name", zone_name)),
+                "timezone": zone_name,
+                "isHome": bool(location.get("isHome")),
+                "date": local.date().isoformat(),
+                "dateLabel": date_label(local.date()),
+                "time": f"{local.hour:02d}:{local.minute:02d}",
+                "hour": local.hour,
+                "minute": local.minute,
+                "isWeekend": local.weekday() >= 5,
+                "utcOffsetMinutes": local_offset,
+                "offsetDifferenceMinutes": local_offset - home_offset,
+                "abbreviation": local.tzname() or "",
+                "dayRelation": day_relation(local.date(), home_time.date()),
+            }
+        )
+
+    return {
+        "timestampMs": round(float(timestamp_ms)),
+        "homeDate": home_time.date().isoformat(),
+        "homeDateLabel": date_label(home_time.date()),
+        "rows": rows,
+    }
+
+
+def valid_local_candidates(naive: datetime, timezone: ZoneInfo) -> list[datetime]:
+    candidates: list[datetime] = []
+    seen: set[float] = set()
+    for fold in (0, 1):
+        candidate = naive.replace(tzinfo=timezone, fold=fold)
+        round_trip = candidate.astimezone(UTC).astimezone(timezone).replace(tzinfo=None)
+        stamp = candidate.timestamp()
+        if round_trip == naive and stamp not in seen:
+            candidates.append(candidate)
+            seen.add(stamp)
+    return candidates
+
+
+def resolve_local(naive: datetime, timezone: ZoneInfo) -> datetime:
+    """Resolve wall time deterministically through gaps and repeated hours.
+
+    The earlier occurrence wins during a repeated DST hour. A nonexistent
+    spring-forward time is normalized through UTC to the corresponding time
+    after the gap (for example 02:30 becomes 03:30 for a one-hour gap).
+    """
+
+    candidates = valid_local_candidates(naive, timezone)
+    if candidates:
+        return min(candidates, key=lambda item: item.timestamp())
+
+    provisional = naive.replace(tzinfo=timezone, fold=0)
+    return provisional.astimezone(UTC).astimezone(timezone)
+
+
+def shift_date(timestamp_ms: int | float, zone_name: str, days: int) -> dict[str, Any]:
+    timezone = zone(zone_name)
+    instant = datetime.fromtimestamp(float(timestamp_ms) / 1000, UTC)
+    local = instant.astimezone(timezone)
+    target_date = local.date() + timedelta(days=days)
+    naive = datetime.combine(target_date, time(local.hour, local.minute, local.second, local.microsecond))
+    resolved = resolve_local(naive, timezone)
+    return {
+        "timestampMs": round(resolved.timestamp() * 1000),
+        "date": resolved.date().isoformat(),
+        "normalized": resolved.replace(tzinfo=None) != naive,
+    }
+
+
+def country_names() -> dict[str, str]:
+    path = Path("/usr/share/zoneinfo/iso3166.tab")
+    result: dict[str, str] = {}
+    try:
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if not line or line.startswith("#"):
+                continue
+            code, name = line.split("\t", 1)
+            result[code] = name
+    except (OSError, ValueError):
+        pass
+    return result
+
+
+def zone_records() -> list[dict[str, str]]:
+    countries = country_names()
+    records: dict[str, dict[str, str]] = {}
+    for filename in ("zone1970.tab", "zone.tab"):
+        path = Path("/usr/share/zoneinfo") / filename
+        try:
+            lines = path.read_text(encoding="utf-8").splitlines()
+        except OSError:
+            continue
+        for line in lines:
+            if not line or line.startswith("#"):
+                continue
+            fields = line.split("\t")
+            if len(fields) < 3:
+                continue
+            codes, _, zone_name = fields[:3]
+            comment = fields[3] if len(fields) > 3 else ""
+            country = ", ".join(countries.get(code, code) for code in codes.split(","))
+            city = zone_name.rsplit("/", 1)[-1].replace("_", " ")
+            records.setdefault(
+                zone_name,
+                {"timezone": zone_name, "name": city, "country": country, "description": comment},
+            )
+
+    for zone_name in available_timezones():
+        if "/" not in zone_name or zone_name.startswith(("posix/", "right/", "SystemV/")):
+            continue
+        records.setdefault(
+            zone_name,
+            {
+                "timezone": zone_name,
+                "name": zone_name.rsplit("/", 1)[-1].replace("_", " "),
+                "country": "",
+                "description": "",
+            },
+        )
+    return list(records.values())
+
+
+def search_zones(query: str, limit: int = 8) -> list[dict[str, str]]:
+    needle = " ".join(query.strip().lower().replace("_", " ").split())
+    records = zone_records()
+    if not needle:
+        by_zone = {item["timezone"]: item for item in records}
+        return [by_zone[name] for name in POPULAR_ZONES if name in by_zone][:limit]
+
+    def score(item: dict[str, str]) -> tuple[int, int, str]:
+        timezone = item["timezone"].lower()
+        name = item["name"].lower()
+        haystack = " ".join((timezone.replace("_", " "), name, item["country"].lower(), item["description"].lower()))
+        if timezone == query.strip().lower():
+            rank = 0
+        elif name == needle:
+            rank = 1
+        elif name.startswith(needle):
+            rank = 2
+        elif timezone.replace("_", " ").startswith(needle):
+            rank = 3
+        elif needle in haystack:
+            rank = 4
+        else:
+            rank = 99
+        return (rank, len(timezone), timezone)
+
+    matches = [item for item in records if score(item)[0] < 99]
+    matches.sort(key=score)
+    return matches[: max(1, min(limit, 20))]
+
+
+def parse_locations(raw: str) -> list[dict[str, Any]]:
+    try:
+        value = json.loads(raw)
+    except json.JSONDecodeError as error:
+        raise InputError("Locations must be valid JSON") from error
+    if not isinstance(value, list):
+        raise InputError("Locations must be a JSON array")
+    return value
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    render = subparsers.add_parser("render", help="render locations at one epoch timestamp")
+    render.add_argument("timestamp_ms", type=float)
+    render.add_argument("locations_json")
+
+    shift = subparsers.add_parser("shift-date", help="move an instant by local calendar days")
+    shift.add_argument("timestamp_ms", type=float)
+    shift.add_argument("timezone")
+    shift.add_argument("days", type=int)
+
+    search = subparsers.add_parser("search", help="search the installed IANA timezone catalog")
+    search.add_argument("query", nargs="?", default="")
+    search.add_argument("--limit", type=int, default=8)
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    try:
+        if args.command == "render":
+            result: Any = render_locations(args.timestamp_ms, parse_locations(args.locations_json))
+        elif args.command == "shift-date":
+            result = shift_date(args.timestamp_ms, args.timezone, args.days)
+        else:
+            result = search_zones(args.query, args.limit)
+        print(json.dumps(result, separators=(",", ":"), ensure_ascii=False))
+        return 0
+    except (InputError, ValueError, OverflowError) as error:
+        print(json.dumps({"error": str(error)}, separators=(",", ":")))
+        return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main())
