@@ -74,6 +74,9 @@ BarWidget {
     function hide(): void { root.close() }
     function toggle(): void { root.toggle() }
     function capturePreview(): void { root.capturePreview() }
+    function previewStatus(): string {
+      return panelLoader.item ? panelLoader.item.previewStatus : "panel unavailable"
+    }
   }
 
   WidgetButton {

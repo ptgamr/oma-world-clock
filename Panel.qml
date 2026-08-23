@@ -53,6 +53,7 @@ Panel {
 
   readonly property string previewPath: "/tmp/omarchy-world-clock-preview.png"
   readonly property bool previewCaptureRequested: setting("_capturePreview", false) === true
+  property string previewStatus: "idle"
 
   function open() {
     if (root.followingNow) root.resetToNow()
@@ -277,6 +278,7 @@ Panel {
   }
 
   function capturePreview() {
+    root.previewStatus = "opening"
     if (!root.opened) root.open()
     root.resetToNow()
     previewCaptureTimer.restart()
@@ -285,9 +287,15 @@ Panel {
   function writePreview() {
     var previewWidth = Math.max(1, Math.ceil(keyCatcher.width))
     var previewHeight = Math.max(1, Math.ceil(keyCatcher.height))
+    root.previewStatus = "capturing " + previewWidth + "x" + previewHeight
+      + " opened=" + root.opened + " visible=" + keyCatcher.visible
     keyCatcher.grabToImage(function(result) {
-      if (!result || !result.saveToFile(root.previewPath))
+      if (!result || !result.saveToFile(root.previewPath)) {
+        root.previewStatus = "save failed"
         root.serviceError = "Could not save the panel preview."
+      } else {
+        root.previewStatus = "saved " + root.previewPath
+      }
     }, Qt.size(previewWidth, previewHeight))
   }
 
