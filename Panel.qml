@@ -51,6 +51,8 @@ Panel {
   property string activeSearchQuery: ""
   property bool assigningSuggestion: false
 
+  readonly property string previewPath: "/tmp/omarchy-world-clock-preview.png"
+
   function open() {
     if (root.followingNow) root.resetToNow()
     else root.requestRender()
@@ -273,6 +275,21 @@ Panel {
     Qt.callLater(function() { keyCatcher.forceActiveFocus() })
   }
 
+  function capturePreview() {
+    if (!root.opened) root.open()
+    root.resetToNow()
+    previewCaptureTimer.restart()
+  }
+
+  function writePreview() {
+    var previewWidth = Math.max(1, Math.ceil(keyCatcher.width))
+    var previewHeight = Math.max(1, Math.ceil(keyCatcher.height))
+    keyCatcher.grabToImage(function(result) {
+      if (!result || !result.saveToFile(root.previewPath))
+        root.serviceError = "Could not save the panel preview."
+    }, Qt.size(previewWidth, previewHeight))
+  }
+
   onPlanningTimestampChanged: requestRender()
   onLocationsChanged: requestRender()
 
@@ -379,6 +396,12 @@ Panel {
     onTriggered: root.startTimezoneSearch()
   }
 
+  Timer {
+    id: previewCaptureTimer
+    interval: 600
+    onTriggered: root.writePreview()
+  }
+
   KeyboardPanel {
     id: panel
     anchorItem: root.anchorItem
@@ -390,9 +413,10 @@ Panel {
     contentWidth: panel.fittedContentWidth(Style.space(620))
     contentHeight: panel.fittedContentHeight(contentColumn.implicitHeight, Style.space(760))
 
-    Item {
+    Rectangle {
       id: keyCatcher
       anchors.fill: parent
+      color: Color.popups.background
       focus: true
       Keys.priority: Keys.BeforeItem
       Keys.onPressed: function(event) {

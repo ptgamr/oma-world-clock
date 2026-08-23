@@ -32,6 +32,13 @@ BarWidget {
     if (panelLoader.item) panelLoader.item.closeForPopoutSwitch()
   }
 
+  // Developer/reviewer aid: capture the real loaded panel without relying on
+  // compositor screenshots (which correctly show only the lock screen).
+  function capturePreview() {
+    if (panelLoader.item && typeof panelLoader.item.capturePreview === "function")
+      panelLoader.item.capturePreview()
+  }
+
   function injectPanel() {
     var target = panelLoader.item
     if (!target) return
@@ -66,6 +73,7 @@ BarWidget {
     function show(): void { root.open() }
     function hide(): void { root.close() }
     function toggle(): void { root.toggle() }
+    function capturePreview(): void { root.capturePreview() }
   }
 
   WidgetButton {

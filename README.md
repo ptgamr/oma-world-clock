@@ -59,6 +59,14 @@ python -m unittest discover -s tests
 node tests/model-test.js
 ```
 
+For a reviewer screenshot of the real loaded panel—even when the desktop is
+locked—ask the running widget to capture only its own QML content:
+
+```sh
+omarchy-shell io.github.ptgamr.world-clock capturePreview
+# writes /tmp/omarchy-world-clock-preview.png
+```
+
 ## Configuration
 
 Locations are written into this widget's own entry in `~/.config/omarchy/shell.json`:
