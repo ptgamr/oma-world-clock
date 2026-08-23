@@ -67,6 +67,15 @@ omarchy-shell io.github.ptgamr.world-clock capturePreview
 # writes /tmp/omarchy-world-clock-preview.png
 ```
 
+If the widget was just hot-reloaded and its old IPC handler is still retiring,
+the equivalent bar-setting trigger is:
+
+```sh
+omarchy-shell shell setBarWidget io.github.ptgamr.world-clock _capturePreview true '{}'
+# reset the one-shot trigger after the file is written
+omarchy-shell shell setBarWidget io.github.ptgamr.world-clock _capturePreview false '{}'
+```
+
 ## Configuration
 
 Locations are written into this widget's own entry in `~/.config/omarchy/shell.json`:

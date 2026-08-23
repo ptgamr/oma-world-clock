@@ -52,6 +52,7 @@ Panel {
   property bool assigningSuggestion: false
 
   readonly property string previewPath: "/tmp/omarchy-world-clock-preview.png"
+  readonly property bool previewCaptureRequested: setting("_capturePreview", false) === true
 
   function open() {
     if (root.followingNow) root.resetToNow()
@@ -292,6 +293,9 @@ Panel {
 
   onPlanningTimestampChanged: requestRender()
   onLocationsChanged: requestRender()
+  onPreviewCaptureRequestedChanged: {
+    if (root.previewCaptureRequested) root.capturePreview()
+  }
 
   Component.onCompleted: {
     root.dayAnchorTimestamp = Date.now()
