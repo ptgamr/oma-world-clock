@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.ptgamr.world-clock",
+  "name": "World Clock",
+  "version": "0.1.0",
+  "author": "Anh Trinh",
+  "license": "MIT",
+  "description": "DST-correct world clocks and a meeting-time planner for the Omarchy bar.",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "World Clock",
+    "description": "Compare working hours and plan meetings across time zones.",
+    "category": "Time",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}
