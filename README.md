@@ -2,6 +2,8 @@
 
 A standalone world-clock and meeting-planner plugin for the Omarchy Quattro bar. It is designed to live beside the built-in `omarchy.clock`, not replace it.
 
+![World Clock meeting planner](screenshots/world-clock-panel.png)
+
 Version 0.1 includes:
 
 - multiple named IANA timezones with one home location
@@ -59,8 +61,8 @@ python -m unittest discover -s tests
 node tests/model-test.js
 ```
 
-For a reviewer screenshot of the real loaded panel—even when the desktop is
-locked—ask the running widget to capture only its own QML content:
+For a reviewer screenshot of the loaded panel while the session is unlocked,
+ask the running widget to capture only its own QML content:
 
 ```sh
 omarchy-shell io.github.ptgamr.world-clock capturePreview
@@ -75,6 +77,10 @@ omarchy-shell shell setBarWidget io.github.ptgamr.world-clock _capturePreview tr
 # reset the one-shot trigger after the file is written
 omarchy-shell shell setBarWidget io.github.ptgamr.world-clock _capturePreview false '{}'
 ```
+
+A secure compositor lock can prevent the popup surface from mapping. The
+checked-in screenshot was therefore rendered offscreen from the same panel
+layout, current Omarchy theme values, and timezone-helper output.
 
 ## Configuration
 
