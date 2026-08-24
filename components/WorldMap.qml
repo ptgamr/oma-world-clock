@@ -561,6 +561,17 @@ BorderSurface {
       }
 
       Text {
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.margins: Style.space(7)
+        z: 4
+        text: "timezone-boundary-builder · ODbL"
+        color: Qt.darker(root.foreground, 1.65)
+        font.family: root.fontFamily
+        font.pixelSize: Style.font.bodySmall
+      }
+
+      Text {
         visible: root.mapDataError !== ""
         anchors.centerIn: parent
         text: root.mapDataError
