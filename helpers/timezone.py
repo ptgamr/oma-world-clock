@@ -291,6 +291,64 @@ def timeline(
     }
 
 
+def clock_range(start: datetime, end: datetime, twelve_hour: bool) -> str:
+    def clock(value: datetime) -> str:
+        if not twelve_hour:
+            return f"{value.hour:02d}:{value.minute:02d}"
+        hour = value.hour % 12 or 12
+        return f"{hour}:{value.minute:02d} {'AM' if value.hour < 12 else 'PM'}"
+
+    if start.date() == end.date():
+        return f"{clock(start)}–{clock(end)}"
+    return f"{clock(start)} {WEEKDAYS[start.weekday()]}–{clock(end)} {WEEKDAYS[end.weekday()]}"
+
+
+def meeting_summary(
+    start_timestamp_ms: int | float,
+    duration_minutes: int,
+    locations: list[dict[str, Any]],
+) -> dict[str, Any]:
+    if not locations:
+        raise InputError("At least one location is required")
+    if duration_minutes < 15 or duration_minutes > 12 * 60:
+        raise InputError("Meeting duration must be between 15 minutes and 12 hours")
+
+    start = datetime.fromtimestamp(float(start_timestamp_ms) / 1000, UTC)
+    end = start + timedelta(minutes=duration_minutes)
+    home_location = next((item for item in locations if item.get("isHome")), locations[0])
+    home_start = start.astimezone(zone(str(home_location.get("timezone", ""))))
+    rows = []
+    for location in locations:
+        timezone = zone(str(location.get("timezone", "")))
+        local_start = start.astimezone(timezone)
+        local_end = end.astimezone(timezone)
+        rows.append(
+            {
+                "id": str(location.get("id", "")),
+                "name": str(location.get("name", location.get("timezone", ""))),
+                "timezone": str(location.get("timezone", "")),
+                "isHome": bool(location.get("isHome")),
+                "startDate": local_start.date().isoformat(),
+                "startWeekday": WEEKDAY_NAMES[local_start.weekday()],
+                "range12": clock_range(local_start, local_end, True),
+                "range24": clock_range(local_start, local_end, False),
+                "abbreviation": local_start.tzname() or "",
+            }
+        )
+
+    return {
+        "startTimestampMs": round(start.timestamp() * 1000),
+        "endTimestampMs": round(end.timestamp() * 1000),
+        "durationMinutes": duration_minutes,
+        "homeDate": home_start.date().isoformat(),
+        "homeDateLabel": (
+            f"{WEEKDAY_NAMES[home_start.weekday()]}, {home_start.day} "
+            f"{MONTH_NAMES[home_start.month - 1]} {home_start.year}"
+        ),
+        "rows": rows,
+    }
+
+
 def render_locations(timestamp_ms: int | float, locations: list[dict[str, Any]]) -> dict[str, Any]:
     if not locations:
         raise InputError("At least one location is required")
@@ -496,6 +554,10 @@ def build_parser() -> argparse.ArgumentParser:
     timeline_parser.add_argument("locations_json")
     timeline_parser.add_argument("--hours", type=int, default=24)
     timeline_parser.add_argument("--step-minutes", type=int, default=30)
+    meeting_parser = subparsers.add_parser("meeting", help="render a meeting-time range")
+    meeting_parser.add_argument("start_timestamp_ms", type=float)
+    meeting_parser.add_argument("duration_minutes", type=int)
+    meeting_parser.add_argument("locations_json")
     return parser
 
 
@@ -514,6 +576,12 @@ def main(argv: list[str] | None = None) -> int:
                 parse_locations(args.locations_json),
                 args.hours,
                 args.step_minutes,
+            )
+        elif args.command == "meeting":
+            result = meeting_summary(
+                args.start_timestamp_ms,
+                args.duration_minutes,
+                parse_locations(args.locations_json),
             )
         else:
             result = {"timezone": detect_system_timezone()}

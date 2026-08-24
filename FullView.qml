@@ -37,6 +37,16 @@ Item {
     return root.service && root.service.hourFormat === "12" && row ? row.period : ""
   }
 
+  function durationLabel() {
+    if (!root.service) return "1 hr"
+    var minutes = root.service.meetingDurationMinutes
+    if (minutes < 60) return minutes + " min"
+    var hours = Math.floor(minutes / 60)
+    var remainder = minutes % 60
+    return hours + " hr" + (hours === 1 ? "" : "s")
+      + (remainder ? " " + remainder + " min" : "")
+  }
+
   function open(payloadJson) {
     root.closingFromHost = false
     window.visible = true
@@ -232,6 +242,98 @@ Item {
                       }
                     }
                   }
+                }
+              }
+            }
+
+            BorderSurface {
+              id: meetingControls
+              width: parent.width
+              height: Style.space(72)
+              color: Style.normalFillFor(root.foreground, root.accent, root.urgent)
+              borderSpec: Border.controlSpec("normal", root.foreground, root.accent)
+
+              Column {
+                anchors.left: parent.left
+                anchors.leftMargin: Style.space(14)
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: Style.space(3)
+
+                Text {
+                  text: "MEETING TIME"
+                  color: root.foreground
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.bodySmall
+                  font.bold: true
+                  font.letterSpacing: 1
+                }
+
+                Text {
+                  text: root.service && root.service.meetingData.homeDateLabel
+                    ? root.service.meetingData.homeDateLabel
+                    : "Choose a start time on the timeline"
+                  color: Qt.darker(root.foreground, 1.35)
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.body
+                }
+              }
+
+              Row {
+                id: meetingActions
+                anchors.right: parent.right
+                anchors.rightMargin: Style.space(10)
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: Style.space(5)
+
+                Button {
+                  text: "−"
+                  tooltipText: "Shorten by 15 minutes"
+                  foreground: root.foreground
+                  fontFamily: root.fontFamily
+                  bordered: true
+                  onClicked: if (root.service)
+                    root.service.setMeetingDuration(root.service.meetingDurationMinutes - 15)
+                }
+
+                Text {
+                  width: Style.space(88)
+                  anchors.verticalCenter: parent.verticalCenter
+                  horizontalAlignment: Text.AlignHCenter
+                  text: root.durationLabel()
+                  color: root.foreground
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.body
+                  font.bold: true
+                }
+
+                Button {
+                  text: "+"
+                  tooltipText: "Extend by 15 minutes"
+                  foreground: root.foreground
+                  fontFamily: root.fontFamily
+                  bordered: true
+                  onClicked: if (root.service)
+                    root.service.setMeetingDuration(root.service.meetingDurationMinutes + 15)
+                }
+
+                Item { width: Style.space(7); height: 1 }
+
+                Text {
+                  visible: root.service && root.service.copyStatus !== ""
+                  anchors.verticalCenter: parent.verticalCenter
+                  text: root.service ? root.service.copyStatus : ""
+                  color: root.accent
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.bodySmall
+                }
+
+                Button {
+                  text: "Copy meeting time"
+                  foreground: root.foreground
+                  fontFamily: root.fontFamily
+                  active: root.service && root.service.copyStatus !== ""
+                  bordered: true
+                  onClicked: if (root.service) root.service.copyMeetingTime()
                 }
               }
             }

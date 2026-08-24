@@ -22,6 +22,8 @@ BorderSurface {
   readonly property real selectionX: Math.max(0, Math.min(gridWidth,
     (Number(service ? service.planningTimestamp : 0) - Number(timeline.startTimestampMs || 0))
       / durationMs * gridWidth))
+  readonly property real selectionWidth: Math.max(Style.space(6), Math.min(gridWidth - selectionX,
+    Number(service ? service.meetingDurationMinutes : 60) * 60000 / durationMs * gridWidth))
 
   implicitHeight: axisHeight + Math.max(1, (timeline.rows || []).length) * rowHeight
     + footerHeight + Style.space(24)
@@ -194,11 +196,29 @@ BorderSurface {
         }
 
         Rectangle {
-          x: root.selectionX - width / 2
-          width: Style.space(2)
+          x: root.selectionX
+          width: root.selectionWidth
           height: grid.height
-          color: root.accent
+          color: Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.22)
+          border.width: Style.space(1)
+          border.color: root.accent
           z: 3
+
+          Rectangle {
+            anchors.left: parent.left
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            width: Style.space(2)
+            color: root.accent
+          }
+
+          Rectangle {
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            width: Style.space(6)
+            height: Style.space(18)
+            color: root.accent
+          }
         }
 
         MouseArea {

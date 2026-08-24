@@ -150,6 +150,30 @@ class TimelineTests(unittest.TestCase):
         self.assertEqual(timezone.availability_key(datetime(2026, 8, 23, 10, 0)), "off")
 
 
+class MeetingSummaryTests(unittest.TestCase):
+    def test_meeting_summary_formats_all_locations(self):
+        result = timezone.meeting_summary(
+            timestamp_ms(datetime(2026, 8, 23, 23, 45, tzinfo=UTC)), 60, LOCATIONS[:3]
+        )
+        self.assertEqual(result["homeDateLabel"], "Monday, 24 August 2026")
+        self.assertEqual(result["durationMinutes"], 60)
+        self.assertEqual(result["rows"][0]["range12"], "11:45 AM–12:45 PM")
+        self.assertEqual(result["rows"][1]["range24"], "00:45–01:45")
+
+    def test_clock_range_labels_both_days_when_crossing_midnight(self):
+        start = datetime(2026, 8, 23, 23, 45)
+        end = datetime(2026, 8, 24, 0, 45)
+        self.assertEqual(timezone.clock_range(start, end, False), "23:45 Sun–00:45 Mon")
+
+    def test_meeting_summary_handles_remote_previous_day(self):
+        result = timezone.meeting_summary(
+            timestamp_ms(datetime(2026, 8, 23, 23, 45, tzinfo=UTC)), 60, LOCATIONS[:3]
+        )
+        new_york = result["rows"][2]
+        self.assertEqual(new_york["startWeekday"], "Sunday")
+        self.assertEqual(new_york["startDate"], "2026-08-23")
+
+
 class SearchTests(unittest.TestCase):
     def test_city_and_iana_search(self):
         city_matches = timezone.search_zones("new york")

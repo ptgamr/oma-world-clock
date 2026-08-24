@@ -52,6 +52,21 @@ Item {
   property bool timelineQueued: false
   property double activeTimelineStart: 0
 
+  property int meetingDurationMinutes: 60
+  readonly property double meetingEndTimestamp: planningTimestamp + meetingDurationMinutes * 60000
+  property var meetingData: ({
+    startTimestampMs: 0,
+    endTimestampMs: 0,
+    durationMinutes: 60,
+    homeDate: "",
+    homeDateLabel: "",
+    rows: []
+  })
+  property bool meetingQueued: false
+  property double activeMeetingStart: 0
+  property int activeMeetingDuration: 60
+  property string copyStatus: ""
+
   function entrySettings() {
     if (!root.shell || !root.shell.barConfig || !root.shell.barConfig.layout) return null
     var layout = root.shell.barConfig.layout
@@ -181,6 +196,55 @@ Item {
     if (!timelineProcess.running) Qt.callLater(root.startTimeline)
   }
 
+  function setMeetingDuration(minutes) {
+    var snapped = Math.round(Number(minutes) / 15) * 15
+    if (!isFinite(snapped)) return
+    root.meetingDurationMinutes = Math.max(15, Math.min(12 * 60, snapped))
+  }
+
+  function requestMeeting() {
+    root.meetingQueued = true
+    if (!meetingProcess.running) Qt.callLater(root.startMeeting)
+  }
+
+  function startMeeting() {
+    if (meetingProcess.running || !root.meetingQueued) return
+    root.meetingQueued = false
+    root.activeMeetingStart = Math.round(root.planningTimestamp)
+    root.activeMeetingDuration = root.meetingDurationMinutes
+    meetingProcess.command = [
+      "python3",
+      root.helperPath,
+      "meeting",
+      String(root.activeMeetingStart),
+      String(root.activeMeetingDuration),
+      JSON.stringify(root.locations)
+    ]
+    meetingProcess.running = true
+  }
+
+  function meetingText() {
+    var meeting = root.meetingData || ({})
+    var rows = Array.isArray(meeting.rows) ? meeting.rows : []
+    if (rows.length === 0) return ""
+    var lines = ["Meeting time · " + String(meeting.homeDateLabel || "")]
+    for (var i = 0; i < rows.length; i++) {
+      var row = rows[i]
+      var range = root.hourFormat === "24" ? row.range24 : row.range12
+      if (row.startDate !== meeting.homeDate) range = row.startWeekday + " " + range
+      lines.push(row.name + " — " + range + (row.abbreviation ? " " + row.abbreviation : ""))
+    }
+    return lines.join("\n")
+  }
+
+  function copyMeetingTime() {
+    var value = root.meetingText()
+    if (value === "") return
+    Quickshell.execDetached(["omarchy-clipboard-paste-text", "--copy-only", value])
+    root.copyStatus = "Copied meeting time"
+    copyStatusTimer.restart()
+  }
+
   function startTimeline() {
     if (timelineProcess.running || !root.timelineQueued) return
     root.timelineQueued = false
@@ -222,9 +286,14 @@ Item {
   onShellChanged: Qt.callLater(root.syncSettings)
   onLocationsChanged: {
     root.requestRender()
+    root.requestMeeting()
     if (root.timelineData.startTimestampMs) root.requestTimeline()
   }
-  onPlanningTimestampChanged: root.requestRender()
+  onPlanningTimestampChanged: {
+    root.requestRender()
+    root.requestMeeting()
+  }
+  onMeetingDurationMinutesChanged: root.requestMeeting()
 
   Connections {
     target: root.shell
@@ -235,6 +304,13 @@ Item {
     root.dayAnchorTimestamp = Date.now()
     Qt.callLater(root.syncSettings)
     root.requestRender()
+    root.requestMeeting()
+  }
+
+  Timer {
+    id: copyStatusTimer
+    interval: 2200
+    onTriggered: root.copyStatus = ""
   }
 
   SystemClock {
@@ -351,6 +427,37 @@ Item {
       if (exitCode !== 0 && root.errorMessage === "")
         root.errorMessage = "Could not build the timezone timeline."
       if (root.timelineQueued) Qt.callLater(root.startTimeline)
+    }
+  }
+
+  Process {
+    id: meetingProcess
+    stdout: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: {
+        var raw = String(text || "").trim()
+        if (raw === "") return
+        try {
+          var result = JSON.parse(raw)
+          if (result.error) {
+            root.errorMessage = result.error
+            return
+          }
+          if (Number(result.startTimestampMs) !== root.activeMeetingStart
+              || Number(result.durationMinutes) !== root.activeMeetingDuration) return
+          if (root.activeMeetingStart !== Math.round(root.planningTimestamp)
+              || root.activeMeetingDuration !== root.meetingDurationMinutes) return
+          root.meetingData = result
+          root.errorMessage = ""
+        } catch (error) {
+          root.errorMessage = "Meeting time conversion returned invalid data."
+        }
+      }
+    }
+    onExited: function(exitCode) {
+      if (exitCode !== 0 && root.errorMessage === "")
+        root.errorMessage = "Could not prepare the meeting time."
+      if (root.meetingQueued) Qt.callLater(root.startMeeting)
     }
   }
 }
