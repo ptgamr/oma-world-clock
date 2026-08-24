@@ -162,14 +162,20 @@ Panel {
     if (root.selectedIndex < 0 || !clockRepeater) return
     Qt.callLater(function() {
       var item = clockRepeater.itemAt(root.selectedIndex)
-      if (!item || !scroll || !contentColumn) return
-      var point = item.mapToItem(contentColumn, 0, 0)
-      var top = point.y
-      var bottom = top + item.height
-      if (top < scroll.contentY) scroll.contentY = top
-      else if (bottom > scroll.contentY + scroll.height)
-        scroll.contentY = Math.min(scroll.contentHeight - scroll.height, bottom - scroll.height)
+      root.revealItem(item)
     })
+  }
+
+  function revealItem(item) {
+    if (!item || !scroll || !contentColumn) return
+    var point = item.mapToItem(contentColumn, 0, 0)
+    var margin = Style.space(8)
+    var top = Math.max(0, point.y - margin)
+    var bottom = point.y + item.height + margin
+    var maximum = Math.max(0, scroll.contentHeight - scroll.height)
+    if (top < scroll.contentY) scroll.contentY = Math.min(maximum, top)
+    else if (bottom > scroll.contentY + scroll.height)
+      scroll.contentY = Math.max(0, Math.min(maximum, bottom - scroll.height))
   }
 
   function selectLocation(index) {
@@ -426,6 +432,7 @@ Panel {
       renameField.text = name
       renameField.selectAll()
       renameField.forceActiveFocus()
+      root.revealItem(renameEditor)
     })
   }
 
@@ -451,6 +458,7 @@ Panel {
       timezoneField.text = ""
       timezoneField.forceActiveFocus()
       root.requestTimezoneSearch("")
+      root.revealItem(addEditor)
     })
   }
 
@@ -568,6 +576,7 @@ Panel {
           if (Array.isArray(result) && root.activeSearchQuery === root.pendingSearchQuery) {
             root.timezoneSuggestions = result
             root.suggestionIndex = 0
+            Qt.callLater(function() { root.revealItem(addEditor) })
           }
         } catch (error) {
           root.timezoneSuggestions = []
@@ -1387,6 +1396,7 @@ Panel {
           }
 
           Rectangle {
+            id: renameEditor
             visible: root.renamingId !== ""
             width: parent.width
             implicitHeight: renameContent.implicitHeight + Style.space(18)
@@ -1448,6 +1458,7 @@ Panel {
           }
 
           Rectangle {
+            id: addEditor
             visible: root.addingLocation
             width: parent.width
             implicitHeight: addContent.implicitHeight + Style.space(18)
