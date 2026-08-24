@@ -176,6 +176,68 @@ def day_relation(value: date, home_date: date) -> str:
     return date_label(value)
 
 
+def coordinate_component(value: str, degree_digits: int) -> float:
+    """Parse one compact ISO 6709 component from an IANA zone table."""
+
+    if len(value) not in (degree_digits + 3, degree_digits + 5) or value[0] not in "+-":
+        raise ValueError(f"Invalid coordinate component: {value}")
+    digits = value[1:]
+    degrees = int(digits[:degree_digits])
+    minutes = int(digits[degree_digits:degree_digits + 2])
+    seconds = int(digits[degree_digits + 2:]) if len(digits) > degree_digits + 2 else 0
+    if minutes >= 60 or seconds >= 60:
+        raise ValueError(f"Invalid coordinate component: {value}")
+    result = degrees + minutes / 60 + seconds / 3600
+    return -result if value[0] == "-" else result
+
+
+def parse_zone_coordinates(value: str) -> tuple[float, float]:
+    """Return latitude and longitude from an IANA zone.tab coordinate."""
+
+    longitude_sign = max(value.find("+", 1), value.find("-", 1))
+    if longitude_sign <= 0:
+        raise ValueError(f"Invalid zone coordinate: {value}")
+    return (
+        coordinate_component(value[:longitude_sign], 2),
+        coordinate_component(value[longitude_sign:], 3),
+    )
+
+
+def timezone_coordinates() -> dict[str, tuple[float, float]]:
+    result: dict[str, tuple[float, float]] = {}
+    for filename in ("zone.tab", "zone1970.tab"):
+        path = Path("/usr/share/zoneinfo") / filename
+        try:
+            lines = path.read_text(encoding="utf-8").splitlines()
+        except OSError:
+            continue
+        for line in lines:
+            if not line or line.startswith("#"):
+                continue
+            fields = line.split("\t")
+            if len(fields) < 3:
+                continue
+            try:
+                result.setdefault(fields[2], parse_zone_coordinates(fields[1]))
+            except ValueError:
+                continue
+    return result
+
+
+def coordinates_for_zone(
+    zone_name: str, coordinates: dict[str, tuple[float, float]]
+) -> tuple[float | None, float | None]:
+    point = coordinates.get(zone_name)
+    if point is None:
+        try:
+            resolved = (Path("/usr/share/zoneinfo") / zone_name).resolve(strict=True)
+            canonical = resolved.relative_to(Path("/usr/share/zoneinfo").resolve()).as_posix()
+            point = coordinates.get(canonical)
+        except (OSError, RuntimeError, ValueError):
+            point = None
+    return point if point is not None else (None, None)
+
+
 def calendar_strip(selected_date: date) -> dict[str, Any]:
     """Return the Sunday-first week containing the selected home date."""
 
@@ -358,6 +420,7 @@ def render_locations(timestamp_ms: int | float, locations: list[dict[str, Any]])
     home_zone = zone(str(home_location.get("timezone", "")))
     home_time = instant.astimezone(home_zone)
     home_offset = offset_minutes(home_time)
+    coordinates = timezone_coordinates()
 
     rows: list[dict[str, Any]] = []
     for location in locations:
@@ -365,6 +428,7 @@ def render_locations(timestamp_ms: int | float, locations: list[dict[str, Any]])
         local = instant.astimezone(zone(zone_name))
         local_offset = offset_minutes(local)
         hour_12 = local.hour % 12 or 12
+        latitude, longitude = coordinates_for_zone(zone_name, coordinates)
         rows.append(
             {
                 "id": str(location.get("id", "")),
@@ -379,6 +443,8 @@ def render_locations(timestamp_ms: int | float, locations: list[dict[str, Any]])
                 "period": "AM" if local.hour < 12 else "PM",
                 "hour": local.hour,
                 "minute": local.minute,
+                "latitude": latitude,
+                "longitude": longitude,
                 "isWeekend": local.weekday() >= 5,
                 "utcOffsetMinutes": local_offset,
                 "offsetDifferenceMinutes": local_offset - home_offset,

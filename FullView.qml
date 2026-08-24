@@ -348,34 +348,13 @@ Item {
               fontFamily: root.fontFamily
             }
 
-            BorderSurface {
+            WorldMap {
               width: parent.width
-              height: Style.space(230)
-              color: Style.normalFillFor(root.foreground, root.accent, root.urgent)
-              borderSpec: Border.controlSpec("normal", root.foreground, root.accent)
-
-              Column {
-                anchors.centerIn: parent
-                spacing: Style.space(7)
-
-                Text {
-                  anchors.horizontalCenter: parent.horizontalCenter
-                  text: "WORLD MAP"
-                  color: root.foreground
-                  font.family: root.fontFamily
-                  font.pixelSize: Style.font.subtitle
-                  font.bold: true
-                  font.letterSpacing: 1
-                }
-
-                Text {
-                  anchors.horizontalCenter: parent.horizontalCenter
-                  text: "Local vector map and day/night overlay will use this space."
-                  color: Qt.darker(root.foreground, 1.35)
-                  font.family: root.fontFamily
-                  font.pixelSize: Style.font.body
-                }
-              }
+              service: root.service
+              foreground: root.foreground
+              accent: root.accent
+              urgent: root.urgent
+              fontFamily: root.fontFamily
             }
           }
         }

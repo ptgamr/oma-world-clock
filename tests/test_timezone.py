@@ -50,6 +50,11 @@ class RenderTests(unittest.TestCase):
         self.assertEqual(rows["kathmandu"]["utcOffsetMinutes"], 5 * 60 + 45)
         self.assertEqual(rows["kolkata"]["utcOffsetMinutes"], 5 * 60 + 30)
 
+    def test_render_includes_map_coordinates_from_iana_data(self):
+        rows = self.rows_at(datetime(2026, 8, 24, 0, tzinfo=UTC))
+        self.assertAlmostEqual(rows["new-york"]["latitude"], 40.714, places=2)
+        self.assertAlmostEqual(rows["new-york"]["longitude"], -74.006, places=2)
+
     def test_day_relationship_crosses_year_boundary(self):
         rows = self.rows_at(datetime(2026, 12, 31, 12, tzinfo=UTC))
         self.assertEqual(rows["home"]["date"], "2027-01-01")
@@ -148,6 +153,13 @@ class TimelineTests(unittest.TestCase):
         self.assertEqual(timezone.availability_key(datetime(2026, 8, 24, 10, 0)), "work")
         self.assertEqual(timezone.availability_key(datetime(2026, 8, 24, 18, 0)), "edge")
         self.assertEqual(timezone.availability_key(datetime(2026, 8, 23, 10, 0)), "off")
+
+
+class CoordinateTests(unittest.TestCase):
+    def test_compact_iana_coordinates(self):
+        latitude, longitude = timezone.parse_zone_coordinates("+404251-0740023")
+        self.assertAlmostEqual(latitude, 40.7142, places=4)
+        self.assertAlmostEqual(longitude, -74.0064, places=4)
 
 
 class MeetingSummaryTests(unittest.TestCase):
