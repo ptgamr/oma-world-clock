@@ -2,9 +2,15 @@ const assert = require("node:assert/strict")
 const Model = require("../Model.js")
 
 const defaults = Model.defaultLocations()
-assert.equal(defaults.length, 7)
+assert.equal(defaults.length, 4)
+assert.deepEqual(defaults.map(location => location.id), [
+  "hanoi",
+  "berlin",
+  "pacific-time",
+  "wellington"
+])
 assert.equal(Model.homeLocation(defaults).timezone, "Asia/Ho_Chi_Minh")
-assert.equal(Model.homeLocation(defaults).name, "Ho Chi Minh")
+assert.equal(Model.homeLocation(defaults).name, "Hanoi")
 assert.equal(defaults.find(location => location.id === "wellington").isHome, false)
 assert.equal(defaults.find(location => location.id === "berlin").timezone, "Europe/Berlin")
 assert.equal(defaults.find(location => location.id === "hanoi").timezone, "Asia/Ho_Chi_Minh")
@@ -23,13 +29,13 @@ assert.equal(added.at(-1).timezone, "Asia/Kathmandu")
 const moved = Model.moveLocation(added, added.at(-1).id, -1)
 assert.equal(moved.at(-2).timezone, "Asia/Kathmandu")
 
-const renamed = Model.renameLocation(moved, "london", "UK Team")
-assert.equal(renamed.find(location => location.id === "london").name, "UK Team")
+const renamed = Model.renameLocation(moved, "berlin", "Work")
+assert.equal(renamed.find(location => location.id === "berlin").name, "Work")
 
-const newHome = Model.setHomeLocation(renamed, "new-york")
-assert.equal(Model.homeLocation(newHome).id, "new-york")
+const newHome = Model.setHomeLocation(renamed, "pacific-time")
+assert.equal(Model.homeLocation(newHome).id, "pacific-time")
 
-const withoutHome = Model.removeLocation(newHome, "new-york")
+const withoutHome = Model.removeLocation(newHome, "pacific-time")
 assert.equal(withoutHome[0].isHome, true)
 
 assert.equal(Model.clampPlannerMinutes(22), 15)

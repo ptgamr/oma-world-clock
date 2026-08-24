@@ -46,9 +46,9 @@ omarchy bar move io.github.ptgamr.world-clock --section right
 ## Use
 
 Click the world-clock count in the bar to open the planner. The initial set
-contains Wellington, London, New York, Ho Chi Minh, Berlin, Hanoi, and Pacific
-Time (`America/Los_Angeles`, so it follows PST/PDT automatically). Ho Chi Minh
-is the default home location.
+contains Hanoi, Berlin, Pacific Time, and Wellington in that order. Pacific
+Time uses `America/Los_Angeles`, so it follows PST/PDT automatically. Hanoi is
+the default home location.
 
 - Drag or scroll the slider to move all clocks in 15-minute steps.
 - Press Left/Right for 15 minutes; hold Shift for one hour.
@@ -100,8 +100,8 @@ Locations are written into this widget's own entry in `~/.config/omarchy/shell.j
   "id": "io.github.ptgamr.world-clock",
   "locations": [
     {
-      "id": "home",
-      "name": "Ho Chi Minh",
+      "id": "hanoi",
+      "name": "Hanoi",
       "timezone": "Asia/Ho_Chi_Minh",
       "isHome": true
     }
