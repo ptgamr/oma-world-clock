@@ -262,10 +262,10 @@ Panel {
 
   function shortcutHint() {
     if (root.showingSettings)
-      return "j/k select · ←/→ choose · Enter apply · a analog · 1/2 format · s done"
+      return "j/k · ←/→ change · Enter apply · a analog · 1/2 format · s done"
     if (root.managingLocations)
-      return "j/k select · J/K move · r rename · h home · x delete · a add · m done"
-    return "j/k select · J/K reorder · h home · m manage · s settings · o full view"
+      return "j/k · J/K move · r rename · h home · x delete · a add · m done"
+    return "j/k · J/K move · h home · m manage · s settings · o full view"
   }
 
   function clockRowStep(index) {
@@ -1383,6 +1383,7 @@ Panel {
             color: Qt.darker(root.contentForeground, 1.6)
             font.family: root.contentFontFamily
             font.pixelSize: Style.font.bodySmall
+            wrapMode: Text.WordWrap
           }
 
           Rectangle {
