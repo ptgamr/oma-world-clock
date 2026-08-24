@@ -10,6 +10,10 @@ BarWidget {
   id: root
   moduleName: "io.github.ptgamr.world-clock"
 
+  // The base widget starts with an empty settings object. Only treat it as
+  // authoritative after the bar host has injected the shell.json entry.
+  property bool hostSettingsReady: false
+
   readonly property int locationCount: Model.normalizeLocations(setting("locations", Model.defaultLocations())).length
   readonly property bool opened: panelLoader.item ? panelLoader.item.opened === true : false
   readonly property bool popoutSwitchClosing: panelLoader.item
@@ -44,6 +48,7 @@ BarWidget {
     if (!target) return
     target.bar = root.bar
     target.settings = root.settings
+    target.settingsReady = root.hostSettingsReady
     target.anchorItem = button
     target.hostWidget = root
   }
@@ -52,7 +57,10 @@ BarWidget {
   implicitHeight: button.implicitHeight
 
   onBarChanged: injectPanel()
-  onSettingsChanged: injectPanel()
+  onSettingsChanged: {
+    root.hostSettingsReady = true
+    root.injectPanel()
+  }
 
   Loader {
     id: panelLoader

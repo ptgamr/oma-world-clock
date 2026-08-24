@@ -13,6 +13,7 @@ Panel {
 
   property var anchorItem: null
   property var hostWidget: null
+  property bool settingsReady: false
   readonly property var barIdentity: hostWidget || root
 
   readonly property color contentForeground: bar ? bar.foreground : Color.foreground
@@ -135,7 +136,7 @@ Panel {
   }
 
   function detectFirstRunTimezone() {
-    if (root.hasConfiguredLocations || defaultTimezoneProcess.running) return
+    if (!root.settingsReady || root.hasConfiguredLocations || defaultTimezoneProcess.running) return
     defaultTimezoneProcess.command = ["python3", root.helperPath, "detect-timezone"]
     defaultTimezoneProcess.running = true
   }
@@ -333,10 +334,11 @@ Panel {
   onPreviewCaptureRequestedChanged: {
     if (root.previewCaptureRequested) root.capturePreview()
   }
+  onSettingsReadyChanged: if (root.settingsReady) root.detectFirstRunTimezone()
 
   Component.onCompleted: {
     root.dayAnchorTimestamp = Date.now()
-    root.detectFirstRunTimezone()
+    if (root.settingsReady) root.detectFirstRunTimezone()
     root.requestRender()
   }
 
@@ -362,7 +364,7 @@ Panel {
       waitForEnd: true
       onStreamFinished: {
         var raw = String(text || "").trim()
-        if (root.hasConfiguredLocations || raw === "") return
+        if (!root.settingsReady || root.hasConfiguredLocations || raw === "") return
         try {
           var result = JSON.parse(raw)
           if (!result.timezone) return
@@ -374,7 +376,7 @@ Panel {
       }
     }
     onExited: function(exitCode) {
-      if (exitCode !== 0 && !root.hasConfiguredLocations)
+      if (exitCode !== 0 && root.settingsReady && !root.hasConfiguredLocations)
         root.serviceError = "Could not detect the local timezone."
     }
   }
