@@ -38,6 +38,19 @@ class PanelContractTests(unittest.TestCase):
         self.assertIn("if (!hasPreviousPosition)", tracking_body)
         self.assertIn("return false", tracking_body)
 
+    def test_pointer_selection_does_not_reveal_or_scroll_rows(self):
+        selection_body = qml_function_body(PANEL_SOURCE, "selectLocation")
+        self.assertIn("if (reveal !== false) root.revealSelection()", selection_body)
+
+        for function_name in (
+            "trackLocationPointer",
+            "handleLocationPointer",
+            "clickLocation",
+            "beginDrag",
+        ):
+            body = qml_function_body(PANEL_SOURCE, function_name)
+            self.assertIn("root.selectLocation(index, false)", body)
+
 
 if __name__ == "__main__":
     unittest.main()

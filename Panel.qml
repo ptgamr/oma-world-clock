@@ -195,10 +195,10 @@ Panel {
       scroll.contentY = Math.max(0, Math.min(maximum, bottom - scroll.height))
   }
 
-  function selectLocation(index) {
+  function selectLocation(index, reveal) {
     root.selectedIndex = Model.clampedIndex(index, root.locations.length)
     root.cursorActive = root.selectedIndex >= 0
-    root.revealSelection()
+    if (reveal !== false) root.revealSelection()
   }
 
   function suppressLocationHover() {
@@ -232,7 +232,7 @@ Panel {
     if (!root.locationHoverSuppressed || !moved) return moved
     root.locationHoverSuppressed = false
     var index = root.locationAtPointer(position)
-    if (index >= 0) root.selectLocation(index)
+    if (index >= 0) root.selectLocation(index, false)
     return moved
   }
 
@@ -241,14 +241,14 @@ Panel {
     var moved = root.trackLocationPointer(position)
     if (root.locationHoverSuppressed && !moved) return
     root.locationHoverSuppressed = false
-    root.selectLocation(index)
+    root.selectLocation(index, false)
   }
 
   function clickLocation(index, item, mouseArea) {
     var position = item.mapToItem(keyCatcher, mouseArea.mouseX, mouseArea.mouseY)
     root.lastLocationPointer = Qt.point(position.x, position.y)
     root.locationHoverSuppressed = false
-    root.selectLocation(index)
+    root.selectLocation(index, false)
   }
 
   function moveSelection(delta) {
@@ -397,7 +397,7 @@ Panel {
     root.dragTo = index
     root.dragOffset = 0
     root.dragReordering = true
-    root.selectLocation(index)
+    root.selectLocation(index, false)
     return true
   }
 
