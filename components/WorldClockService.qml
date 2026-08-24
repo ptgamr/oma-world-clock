@@ -39,6 +39,19 @@ Item {
   property int dateShiftOffset: 0
   readonly property bool dateShiftBusy: dateShiftProcess.running
 
+  property double timelineStartTimestamp: planningTimestamp - 12 * 60 * 60 * 1000
+  property var timelineData: ({
+    startTimestampMs: 0,
+    endTimestampMs: 0,
+    hours: 24,
+    stepMinutes: 30,
+    slotCount: 48,
+    ticks: [],
+    rows: []
+  })
+  property bool timelineQueued: false
+  property double activeTimelineStart: 0
+
   function entrySettings() {
     if (!root.shell || !root.shell.barConfig || !root.shell.barConfig.layout) return null
     var layout = root.shell.barConfig.layout
@@ -158,6 +171,34 @@ Item {
     if (!renderProcess.running) Qt.callLater(root.startRender)
   }
 
+  function centerTimelineOnSelection() {
+    root.timelineStartTimestamp = Math.round(root.planningTimestamp - 12 * 60 * 60 * 1000)
+    root.requestTimeline()
+  }
+
+  function requestTimeline() {
+    root.timelineQueued = true
+    if (!timelineProcess.running) Qt.callLater(root.startTimeline)
+  }
+
+  function startTimeline() {
+    if (timelineProcess.running || !root.timelineQueued) return
+    root.timelineQueued = false
+    root.activeTimelineStart = Math.round(root.timelineStartTimestamp)
+    timelineProcess.command = [
+      "python3",
+      root.helperPath,
+      "timeline",
+      String(root.activeTimelineStart),
+      JSON.stringify(root.locations),
+      "--hours",
+      "24",
+      "--step-minutes",
+      "30"
+    ]
+    timelineProcess.running = true
+  }
+
   function startRender() {
     if (renderProcess.running || !root.renderQueued) return
     root.renderQueued = false
@@ -179,7 +220,10 @@ Item {
   }
 
   onShellChanged: Qt.callLater(root.syncSettings)
-  onLocationsChanged: root.requestRender()
+  onLocationsChanged: {
+    root.requestRender()
+    if (root.timelineData.startTimestampMs) root.requestTimeline()
+  }
   onPlanningTimestampChanged: root.requestRender()
 
   Connections {
@@ -279,6 +323,34 @@ Item {
     onExited: function(exitCode) {
       if (exitCode !== 0 && root.errorMessage === "")
         root.errorMessage = "Could not change the planning date."
+    }
+  }
+
+  Process {
+    id: timelineProcess
+    stdout: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: {
+        var raw = String(text || "").trim()
+        if (raw === "") return
+        try {
+          var result = JSON.parse(raw)
+          if (result.error) {
+            root.errorMessage = result.error
+            return
+          }
+          if (Number(result.startTimestampMs) !== root.activeTimelineStart) return
+          root.timelineData = result
+          root.errorMessage = ""
+        } catch (error) {
+          root.errorMessage = "Timeline conversion returned invalid data."
+        }
+      }
+    }
+    onExited: function(exitCode) {
+      if (exitCode !== 0 && root.errorMessage === "")
+        root.errorMessage = "Could not build the timezone timeline."
+      if (root.timelineQueued) Qt.callLater(root.startTimeline)
     }
   }
 }

@@ -3,6 +3,7 @@ import QtQuick.Controls as QQC
 import Quickshell
 import qs.Commons
 import qs.Ui
+import "components"
 import "Model.js" as Model
 
 // Resizable workspace for the timeline and map. The shell injects the same
@@ -40,6 +41,7 @@ Item {
     root.closingFromHost = false
     window.visible = true
     if (root.service) root.service.requestRender()
+    if (root.service) root.service.centerTimelineOnSelection()
     Qt.callLater(function() { keyCatcher.forceActiveFocus() })
   }
 
@@ -234,34 +236,14 @@ Item {
               }
             }
 
-            BorderSurface {
+            TimelineView {
+              id: timelineView
               width: parent.width
-              height: Style.space(214)
-              color: Style.normalFillFor(root.foreground, root.accent, root.urgent)
-              borderSpec: Border.controlSpec("normal", root.foreground, root.accent)
-
-              Column {
-                anchors.centerIn: parent
-                spacing: Style.space(7)
-
-                Text {
-                  anchors.horizontalCenter: parent.horizontalCenter
-                  text: "24-HOUR TIMELINE"
-                  color: root.foreground
-                  font.family: root.fontFamily
-                  font.pixelSize: Style.font.subtitle
-                  font.bold: true
-                  font.letterSpacing: 1
-                }
-
-                Text {
-                  anchors.horizontalCenter: parent.horizontalCenter
-                  text: "Shared clock state is connected. Timeline comes next."
-                  color: Qt.darker(root.foreground, 1.35)
-                  font.family: root.fontFamily
-                  font.pixelSize: Style.font.body
-                }
-              }
+              service: root.service
+              foreground: root.foreground
+              accent: root.accent
+              urgent: root.urgent
+              fontFamily: root.fontFamily
             }
 
             BorderSurface {

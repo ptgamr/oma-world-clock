@@ -124,6 +124,32 @@ class PlannerDateTests(unittest.TestCase):
         self.assertEqual(resolved.utcoffset().total_seconds(), 3600)
 
 
+class TimelineTests(unittest.TestCase):
+    def test_timeline_has_twenty_four_hours_of_half_hour_cells(self):
+        result = timezone.timeline(
+            timestamp_ms(datetime(2026, 8, 23, 12, tzinfo=UTC)), LOCATIONS[:3]
+        )
+        self.assertEqual(result["slotCount"], 48)
+        self.assertEqual(len(result["ticks"]), 5)
+        self.assertEqual(len(result["rows"]), 3)
+        self.assertTrue(all(len(row["cells"]) == 48 for row in result["rows"]))
+
+    def test_timeline_applies_dst_inside_the_visible_range(self):
+        locations = [
+            {"id": "london", "name": "London", "timezone": "Europe/London", "isHome": True}
+        ]
+        result = timezone.timeline(
+            timestamp_ms(datetime(2026, 3, 29, 0, tzinfo=UTC)), locations, hours=3
+        )
+        times = [cell["time"] for cell in result["rows"][0]["cells"]]
+        self.assertEqual(times[:4], ["00:00", "00:30", "02:00", "02:30"])
+
+    def test_timeline_marks_work_edge_and_off_hours(self):
+        self.assertEqual(timezone.availability_key(datetime(2026, 8, 24, 10, 0)), "work")
+        self.assertEqual(timezone.availability_key(datetime(2026, 8, 24, 18, 0)), "edge")
+        self.assertEqual(timezone.availability_key(datetime(2026, 8, 23, 10, 0)), "off")
+
+
 class SearchTests(unittest.TestCase):
     def test_city_and_iana_search(self):
         city_matches = timezone.search_zones("new york")

@@ -202,6 +202,95 @@ def calendar_strip(selected_date: date) -> dict[str, Any]:
     }
 
 
+def availability_key(value: datetime) -> str:
+    if value.weekday() >= 5:
+        return "off"
+    minute_of_day = value.hour * 60 + value.minute
+    if 9 * 60 <= minute_of_day < 17 * 60:
+        return "work"
+    if 7 * 60 <= minute_of_day < 9 * 60 or 17 * 60 <= minute_of_day < 20 * 60:
+        return "edge"
+    return "off"
+
+
+def timeline(
+    start_timestamp_ms: int | float,
+    locations: list[dict[str, Any]],
+    hours: int = 24,
+    step_minutes: int = 30,
+) -> dict[str, Any]:
+    """Render a DST-correct absolute timeline into local wall-clock cells."""
+
+    if not locations:
+        raise InputError("At least one location is required")
+    if hours < 1 or hours > 72:
+        raise InputError("Timeline hours must be between 1 and 72")
+    if step_minutes < 5 or step_minutes > 60 or 60 % step_minutes != 0:
+        raise InputError("Timeline step must divide one hour")
+
+    start = datetime.fromtimestamp(float(start_timestamp_ms) / 1000, UTC)
+    total_minutes = hours * 60
+    slot_count = total_minutes // step_minutes
+    home_location = next((item for item in locations if item.get("isHome")), locations[0])
+    home_zone = zone(str(home_location.get("timezone", "")))
+
+    rows = []
+    for location in locations:
+        timezone = zone(str(location.get("timezone", "")))
+        cells = []
+        for index in range(slot_count):
+            offset = index * step_minutes
+            local = (start + timedelta(minutes=offset)).astimezone(timezone)
+            hour_12 = local.hour % 12 or 12
+            cells.append(
+                {
+                    "offsetMinutes": offset,
+                    "timestampMs": round(local.timestamp() * 1000),
+                    "date": local.date().isoformat(),
+                    "weekday": WEEKDAY_NAMES[local.weekday()],
+                    "time": f"{local.hour:02d}:{local.minute:02d}",
+                    "time12": f"{hour_12}:{local.minute:02d}",
+                    "period": "AM" if local.hour < 12 else "PM",
+                    "hour": local.hour,
+                    "minute": local.minute,
+                    "isWeekend": local.weekday() >= 5,
+                    "isDaytime": 7 <= local.hour < 19,
+                    "availability": availability_key(local),
+                }
+            )
+        rows.append(
+            {
+                "id": str(location.get("id", "")),
+                "name": str(location.get("name", location.get("timezone", ""))),
+                "timezone": str(location.get("timezone", "")),
+                "isHome": bool(location.get("isHome")),
+                "cells": cells,
+            }
+        )
+
+    ticks = []
+    for offset in range(0, total_minutes + 1, 6 * 60):
+        local = (start + timedelta(minutes=offset)).astimezone(home_zone)
+        ticks.append(
+            {
+                "offsetMinutes": offset,
+                "time": f"{local.hour:02d}:{local.minute:02d}",
+                "weekday": WEEKDAYS[local.weekday()],
+                "date": local.date().isoformat(),
+            }
+        )
+
+    return {
+        "startTimestampMs": round(start.timestamp() * 1000),
+        "endTimestampMs": round((start + timedelta(hours=hours)).timestamp() * 1000),
+        "hours": hours,
+        "stepMinutes": step_minutes,
+        "slotCount": slot_count,
+        "ticks": ticks,
+        "rows": rows,
+    }
+
+
 def render_locations(timestamp_ms: int | float, locations: list[dict[str, Any]]) -> dict[str, Any]:
     if not locations:
         raise InputError("At least one location is required")
@@ -402,6 +491,11 @@ def build_parser() -> argparse.ArgumentParser:
     search.add_argument("query", nargs="?", default="")
     search.add_argument("--limit", type=int, default=8)
     subparsers.add_parser("detect-timezone", help="detect the machine's IANA timezone")
+    timeline_parser = subparsers.add_parser("timeline", help="render a timezone timeline")
+    timeline_parser.add_argument("start_timestamp_ms", type=float)
+    timeline_parser.add_argument("locations_json")
+    timeline_parser.add_argument("--hours", type=int, default=24)
+    timeline_parser.add_argument("--step-minutes", type=int, default=30)
     return parser
 
 
@@ -414,6 +508,13 @@ def main(argv: list[str] | None = None) -> int:
             result = shift_date(args.timestamp_ms, args.timezone, args.days)
         elif args.command == "search":
             result = search_zones(args.query, args.limit)
+        elif args.command == "timeline":
+            result = timeline(
+                args.start_timestamp_ms,
+                parse_locations(args.locations_json),
+                args.hours,
+                args.step_minutes,
+            )
         else:
             result = {"timezone": detect_system_timezone()}
         print(json.dumps(result, separators=(",", ":"), ensure_ascii=False))
