@@ -90,15 +90,18 @@ Run these commands from the repository root after every completed change:
 ```sh
 git diff --check
 omarchy plugin validate .
-qmllint -I /usr/share/omarchy/shell \
+/usr/lib/qt6/bin/qmllint -I /usr/share/omarchy/shell \
   BarWidget.qml Panel.qml FullView.qml components/*.qml
 python3 -m unittest discover -s tests -p 'test_*.py'
 node tests/model-test.js
 node tests/timezone-lookup-test.js
 ```
 
-All commands must pass before handoff. A silent `qmllint` or plugin-validation
-run is a successful run.
+All commands must pass before handoff. Use the explicit Qt 6 `qmllint` path;
+the unqualified command may resolve to the incompatible Qt 5 linter on this
+workstation. Import warnings are expected without the running shell's complete
+module context, but the command must exit successfully. A silent
+plugin-validation run is a successful run.
 
 When changing generated geographic data, also read the regeneration and
 license instructions in `assets/TIMEZONE_BOUNDARIES.md` and
