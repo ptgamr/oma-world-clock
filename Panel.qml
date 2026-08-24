@@ -712,6 +712,7 @@ Panel {
                         spacing: Style.space(7)
 
                         Text {
+                          anchors.verticalCenter: parent.verticalCenter
                           text: clockCard.modelData.name
                           color: root.contentForeground
                           font.family: root.contentFontFamily
@@ -719,35 +720,34 @@ Panel {
                           font.bold: true
                         }
 
-                        Text {
+                        Rectangle {
                           visible: clockCard.modelData.isHome
-                          text: "HOME"
-                          color: Style.selectedStateColor(root.contentForeground, Color.accent, Color.urgent)
-                          font.family: root.contentFontFamily
-                          font.pixelSize: Style.font.bodySmall
-                          font.bold: true
-                          font.letterSpacing: 1
+                          width: homeBadgeText.implicitWidth + Style.space(12)
+                          height: homeBadgeText.implicitHeight + Style.space(6)
+                          radius: Style.space(2)
+                          color: Style.normalFillFor(root.contentForeground, Color.accent, Color.urgent)
+                          border.width: Style.spacing.hairline
+                          border.color: Style.normalBorderFor(
+                            root.contentForeground, Color.accent, Color.urgent)
+
+                          Text {
+                            id: homeBadgeText
+                            anchors.centerIn: parent
+                            text: "HOME"
+                            color: root.contentForeground
+                            font.family: root.contentFontFamily
+                            font.pixelSize: Style.font.bodySmall
+                            font.bold: true
+                            font.letterSpacing: 1
+                          }
                         }
                       }
 
-                      Row {
-                        spacing: Style.space(7)
-
-                        Text {
-                          text: clockCard.rendered ? clockCard.rendered.weekday : "Loading…"
-                          color: Qt.darker(root.contentForeground, 1.35)
-                          font.family: root.contentFontFamily
-                          font.pixelSize: Style.font.bodySmall
-                        }
-
-                        Text {
-                          text: "●  " + clockCard.availability.label
-                          color: root.availabilityColor(clockCard.availability)
-                          font.family: root.contentFontFamily
-                          font.pixelSize: Style.font.bodySmall
-                          font.bold: true
-                          font.letterSpacing: 0.5
-                        }
+                      Text {
+                        text: clockCard.rendered ? clockCard.rendered.weekday : "Loading…"
+                        color: Qt.darker(root.contentForeground, 1.35)
+                        font.family: root.contentFontFamily
+                        font.pixelSize: Style.font.bodySmall
                       }
                     }
 
