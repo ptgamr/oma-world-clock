@@ -18,6 +18,7 @@ Item {
   property bool closingFromHost: false
   property string previewPath: "/tmp/omarchy-world-clock-full-preview.png"
   property string previewStatus: "idle"
+  property alias mapView: worldMap
   readonly property bool opened: window.visible
 
   readonly property color foreground: Color.foreground
@@ -402,12 +403,18 @@ Item {
             }
 
             WorldMap {
+              id: worldMap
               width: parent.width
               service: root.service
               foreground: root.foreground
               accent: root.accent
               urgent: root.urgent
               fontFamily: root.fontFamily
+              onAddTimezoneRequested: function(name, timezone, latitude, longitude) {
+                if (!root.service || typeof root.service.persistLocations !== "function") return
+                root.service.persistLocations(Model.addLocation(
+                  root.service.locations, name, timezone, latitude, longitude))
+              }
             }
           }
         }
