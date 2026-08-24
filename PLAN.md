@@ -661,6 +661,10 @@ The shortcut guide is a fixed footer outside the scrollable clock content, so
 it remains visible for long location lists and while the selected row is
 auto-scrolled into view.
 
+The calendar strip and World Clock header form a fixed top region. Only the
+middle clock list or focused Add/Settings content scrolls, keeping both date
+context and bottom controls visible with large location lists.
+
 The planning slider shares that fixed footer, spans 24 hours before and after
 Now in 15-minute steps, and uses a compact square thumb. Away from Now, a
 floating home-timezone date/time and offset label appears above the thumb

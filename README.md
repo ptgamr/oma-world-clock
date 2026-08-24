@@ -138,6 +138,8 @@ locations the user has already configured.
   compact clock list.
 - The shortcut guide stays pinned below the scrollable content, including with
   long lists of clocks.
+- Only the clock list scrolls: the calendar and World Clock header stay fixed at
+  the top while the slider and shortcut guide stay fixed at the bottom.
 - Press Escape to leave Settings first; press it again to close the panel.
 - Click a day in the calendar strip to plan on that home-timezone date.
 - Use the calendar arrows to move one week at a time, or click `Today` to return.

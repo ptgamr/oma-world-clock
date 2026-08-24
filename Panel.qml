@@ -679,7 +679,8 @@ Panel {
     focusTarget: keyCatcher
     contentWidth: panel.fittedContentWidth(Style.space(460))
     contentHeight: panel.fittedContentHeight(
-      contentColumn.implicitHeight + shortcutFooter.implicitHeight + Style.space(10),
+      fixedHeader.implicitHeight + contentColumn.implicitHeight
+        + shortcutFooter.implicitHeight + Style.space(20),
       Style.space(760))
 
     Rectangle {
@@ -776,23 +777,13 @@ Panel {
         }
       }
 
-      Flickable {
-        id: scroll
+      Column {
+        id: fixedHeader
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.bottom: shortcutFooter.top
-        anchors.bottomMargin: Style.space(8)
-        contentWidth: width
-        contentHeight: contentColumn.implicitHeight
-        clip: true
-        boundsBehavior: Flickable.StopAtBounds
-        interactive: contentHeight > height
-
-        Column {
-          id: contentColumn
-          width: scroll.width
-          spacing: Style.space(10)
+        height: implicitHeight
+        spacing: Style.space(10)
 
           Item {
             width: parent.width
@@ -981,6 +972,27 @@ Panel {
 
             }
           }
+
+      }
+
+      Flickable {
+        id: scroll
+        anchors.top: fixedHeader.bottom
+        anchors.topMargin: Style.space(10)
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: shortcutFooter.top
+        anchors.bottomMargin: Style.space(8)
+        contentWidth: width
+        contentHeight: contentColumn.implicitHeight
+        clip: true
+        boundsBehavior: Flickable.StopAtBounds
+        interactive: contentHeight > height
+
+        Column {
+          id: contentColumn
+          width: scroll.width
+          spacing: Style.space(10)
 
           Rectangle {
             visible: root.showingSettings
