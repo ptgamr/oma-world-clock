@@ -1053,6 +1053,7 @@ Implemented:
 - adjustable meeting duration and `Copy meeting time`
 - bundled Natural Earth world map with precise city markers
 - selected-time day/night terminator
+- projection-preserving 2:1 map canvas at every window width
 
 Acceptance criteria:
 

@@ -34,11 +34,15 @@ A standalone world-clock and meeting-planner plugin for the Omarchy Quattro bar.
 
 [![v10 expanded planner with timeline and world map](screenshots/world-clock-full-v10.png)](screenshots/world-clock-full-v10.png)
 
-**v11 — real coastlines and precise city markers (current)**
+**v11 — real coastlines and precise city markers**
 
 [![v11 expanded planner with real coastlines and precise city markers](screenshots/world-clock-full-v11.png)](screenshots/world-clock-full-v11.png)
 
-New UI captures increment the suffix (`v10`, `v11`, …) so earlier layouts remain available for comparison.
+**v12 — proportionate world map (current)**
+
+[![v12 expanded planner with a proportionate world map](screenshots/world-clock-full-v12.png)](screenshots/world-clock-full-v12.png)
+
+New UI captures increment the suffix (`v10`, `v11`, `v12`, …) so earlier layouts remain available for comparison.
 
 Version 0.1 includes:
 
@@ -139,7 +143,7 @@ omarchy-shell shell setBarWidget io.github.ptgamr.world-clock _capturePreview fa
 ```
 
 A secure compositor lock can prevent the popup surface from mapping. The
-checked-in v11 screenshot was therefore rendered offscreen from the real
+checked-in v12 screenshot was therefore rendered offscreen from the real
 full-view QML components, current Omarchy theme values, and deterministic
 timezone-helper-shaped data.
 
