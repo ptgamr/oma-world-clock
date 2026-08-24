@@ -1688,7 +1688,7 @@ Panel {
             id: resetNowHint
             anchors.right: parent.right
             anchors.rightMargin: Style.space(4)
-            anchors.bottom: parent.bottom
+            anchors.verticalCenter: plannerTooltip.verticalCenter
             text: "T now"
             color: Qt.darker(root.contentForeground, 1.75)
             font.family: root.contentFontFamily
