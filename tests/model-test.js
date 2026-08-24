@@ -106,6 +106,11 @@ assert.equal(Model.movedSelection(1, 4, 1, true), 2)
 assert.equal(Model.movedSelection(0, 4, -1, true), 0)
 assert.equal(Model.clampedIndex(8, 4), 3)
 assert.equal(Model.clampedIndex(0, 0), -1)
+assert.equal(Model.reorderOffset(0, 0, 2, 50), 100)
+assert.equal(Model.reorderOffset(1, 0, 2, 50), -50)
+assert.equal(Model.reorderOffset(2, 0, 2, 50), -50)
+assert.equal(Model.reorderOffset(3, 0, 2, 50), 0)
+assert.equal(Model.reorderOffset(1, 2, 0, 50), 50)
 
 const previewBaseTimestamp = Date.UTC(2026, 7, 24, 10, 0)
 const previewRows = Model.previewRenderedRows([

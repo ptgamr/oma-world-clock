@@ -237,6 +237,18 @@ function movedSelection(index, count, delta, cursorActive) {
   return clampedIndex(Number(index || 0) + Number(delta || 0), length)
 }
 
+function reorderOffset(index, from, to, step) {
+  var row = Number(index)
+  var source = Number(from)
+  var target = Number(to)
+  var distance = Number(step)
+  if (source < 0 || target < 0 || !(distance > 0)) return 0
+  if (row === source) return (target - source) * distance
+  if (source < target && row > source && row <= target) return -distance
+  if (source > target && row >= target && row < source) return distance
+  return 0
+}
+
 function paddedNumber(value) {
   return Number(value) < 10 ? "0" + Number(value) : String(Number(value))
 }
@@ -395,6 +407,7 @@ if (typeof module !== "undefined") {
     setHomeLocation: setHomeLocation,
     clampedIndex: clampedIndex,
     movedSelection: movedSelection,
+    reorderOffset: reorderOffset,
     previewRenderedRows: previewRenderedRows,
     clampPlannerMinutes: clampPlannerMinutes,
     formatDuration: formatDuration,

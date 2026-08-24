@@ -65,6 +65,17 @@ Panel {
   readonly property bool editorOpen: addingLocation || renamingId !== ""
   property int selectedIndex: -1
   property bool cursorActive: false
+  property bool reorderAnimating: false
+  property int reorderFrom: -1
+  property int reorderTo: -1
+  property var reorderedLocations: []
+  property bool dragReordering: false
+  property int dragFrom: -1
+  property int dragTo: -1
+  property real dragOffset: 0
+  readonly property bool reorderBusy: reorderAnimating || dragReordering
+  readonly property int reorderDuration: 180
+  readonly property int dragDisplaceDuration: 110
 
   property var timezoneSuggestions: []
   property int suggestionIndex: 0
@@ -164,7 +175,7 @@ Panel {
   }
 
   function moveSelection(delta) {
-    if (root.editorOpen || root.locations.length === 0) return
+    if (root.editorOpen || root.reorderBusy || root.locations.length === 0) return
     root.selectedIndex = Model.movedSelection(
       root.selectedIndex, root.locations.length, delta, root.cursorActive)
     root.cursorActive = true
@@ -186,6 +197,84 @@ Panel {
   function markSelectedHome() {
     var location = root.selectedLocation()
     if (location && !location.isHome) root.setHomeLocation(location.id)
+  }
+
+  function clockRowStep(index) {
+    var item = clockRepeater ? clockRepeater.itemAt(index) : null
+    return (item ? item.height : Style.space(64)) + clocks.spacing
+  }
+
+  function animatedRowOffset(index) {
+    var source = root.dragReordering ? root.dragFrom : root.reorderFrom
+    var target = root.dragReordering ? root.dragTo : root.reorderTo
+    return Model.reorderOffset(index, source, target, root.clockRowStep(source))
+  }
+
+  function animateLocationMove(from, to) {
+    if (root.editorOpen || root.reorderBusy || from < 0 || from >= root.locations.length) return
+    var target = Model.clampedIndex(to, root.locations.length)
+    if (target < 0 || from === target) return
+    var source = root.locations[from]
+    root.reorderedLocations = Model.moveLocation(root.locations, source.id, target - from)
+    root.reorderFrom = from
+    root.reorderTo = target
+    root.reorderAnimating = true
+    root.cursorActive = true
+    reorderTimer.restart()
+  }
+
+  function finishReorder() {
+    if (!root.reorderAnimating) return
+    var target = root.reorderTo
+    var next = root.reorderedLocations
+    root.reorderAnimating = false
+    root.reorderFrom = -1
+    root.reorderTo = -1
+    root.reorderedLocations = []
+    root.selectedIndex = target
+    root.persistLocations(next)
+    root.revealSelection()
+  }
+
+  function moveSelectedLocation(delta) {
+    if (!root.cursorActive) {
+      root.moveSelection(delta)
+      return
+    }
+    root.animateLocationMove(root.selectedIndex, root.selectedIndex + delta)
+  }
+
+  function beginDrag(index) {
+    if (root.editorOpen || root.reorderAnimating || root.locations.length < 2
+        || index < 0 || index >= root.locations.length) return false
+    root.dragFrom = index
+    root.dragTo = index
+    root.dragOffset = 0
+    root.dragReordering = true
+    root.selectLocation(index)
+    return true
+  }
+
+  function updateDrag(offset) {
+    if (!root.dragReordering) return
+    root.dragOffset = Number(offset || 0)
+    var target = root.dragFrom + Math.round(root.dragOffset / root.clockRowStep(root.dragFrom))
+    root.dragTo = Model.clampedIndex(target, root.locations.length)
+  }
+
+  function finishDrag() {
+    if (!root.dragReordering) return
+    var from = root.dragFrom
+    var target = root.dragTo
+    root.dragReordering = false
+    root.dragFrom = -1
+    root.dragTo = -1
+    root.dragOffset = 0
+    if (from === target) return
+    var source = root.locations[from]
+    root.selectedIndex = target
+    root.persistLocations(Model.moveLocation(root.locations, source.id, target - from))
+    root.revealSelection()
   }
 
   function renderedRow(id) {
@@ -245,12 +334,9 @@ Panel {
   function moveLocation(id, delta) {
     for (var i = 0; i < root.locations.length; i++) {
       if (root.locations[i].id !== id) continue
-      root.selectedIndex = Model.clampedIndex(i + delta, root.locations.length)
-      root.cursorActive = true
-      break
+      root.animateLocationMove(i, i + delta)
+      return
     }
-    root.persistLocations(Model.moveLocation(root.locations, id, delta))
-    root.revealSelection()
   }
 
   function setHomeLocation(id) {
@@ -430,6 +516,12 @@ Panel {
   }
 
   Timer {
+    id: reorderTimer
+    interval: root.reorderDuration
+    onTriggered: root.finishReorder()
+  }
+
+  Timer {
     id: previewCaptureTimer
     interval: 600
     onTriggered: root.writePreview()
@@ -476,6 +568,12 @@ Panel {
           event.accepted = true
         } else if (event.key === Qt.Key_Up || event.text === "k") {
           root.moveSelection(-1)
+          event.accepted = true
+        } else if (event.text === "J") {
+          root.moveSelectedLocation(1)
+          event.accepted = true
+        } else if (event.text === "K") {
+          root.moveSelectedLocation(-1)
           event.accepted = true
         } else if (event.text === "m" || event.text === "M") {
           root.toggleManage()
@@ -837,6 +935,7 @@ Panel {
                 required property int index
                 readonly property var rendered: root.renderedRow(modelData.id)
                 readonly property var availability: root.availabilityFor(rendered)
+                property real animatedOffset: root.animatedRowOffset(index)
 
                 width: clocks.width
                 implicitHeight: rowContent.implicitHeight + Style.space(18)
@@ -844,12 +943,43 @@ Panel {
                 current: modelData.isHome
                 foreground: root.contentForeground
                 accent: Color.accent
+                z: dragHandler.active || (root.reorderAnimating && index === root.reorderFrom)
+                  ? 2 : 1
+                transform: Translate {
+                  y: dragHandler.active ? dragHandler.translation.y : clockCard.animatedOffset
+                }
+
+                Behavior on animatedOffset {
+                  enabled: root.reorderBusy && !dragHandler.active
+                  NumberAnimation {
+                    duration: root.dragReordering
+                      ? root.dragDisplaceDuration
+                      : root.reorderDuration
+                    easing.type: Easing.OutCubic
+                  }
+                }
 
                 MouseArea {
                   anchors.fill: parent
                   hoverEnabled: true
+                  enabled: !root.reorderAnimating
+                  cursorShape: root.locations.length > 1 ? Qt.OpenHandCursor : Qt.ArrowCursor
                   onEntered: root.selectLocation(clockCard.index)
                   onClicked: root.selectLocation(clockCard.index)
+                }
+
+                DragHandler {
+                  id: dragHandler
+                  target: null
+                  enabled: root.locations.length > 1
+                    && !root.editorOpen
+                    && !root.reorderAnimating
+                  xAxis.enabled: false
+                  onTranslationChanged: root.updateDrag(translation.y)
+                  onActiveChanged: {
+                    if (active) root.beginDrag(clockCard.index)
+                    else root.finishDrag()
+                  }
                 }
 
                 Column {
@@ -1111,7 +1241,7 @@ Panel {
           Text {
             width: parent.width
             horizontalAlignment: Text.AlignHCenter
-            text: "j/k select   ·   h home   ·   m manage   ·   s settings"
+            text: "j/k select   ·   J/K reorder   ·   h home   ·   m manage   ·   s settings"
             color: Qt.darker(root.contentForeground, 1.6)
             font.family: root.contentFontFamily
             font.pixelSize: Style.font.bodySmall
