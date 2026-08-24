@@ -31,6 +31,15 @@ var COMPLEMENTARY_REGIONS = {
   other: ["europe", "asia"]
 }
 
+var WEEKDAY_NAMES = [
+  "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
+]
+var WEEKDAY_SHORT_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+var MONTH_SHORT_NAMES = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+]
+
 function cleanText(value) {
   return String(value === undefined || value === null ? "" : value)
     .replace(/^\s+|\s+$/g, "")
@@ -215,6 +224,75 @@ function setHomeLocation(locations, id) {
   return normalized
 }
 
+function paddedNumber(value) {
+  return Number(value) < 10 ? "0" + Number(value) : String(Number(value))
+}
+
+function shiftedDateParts(timestampMs, utcOffsetMinutes) {
+  var date = new Date(Number(timestampMs) + Number(utcOffsetMinutes || 0) * 60000)
+  return {
+    year: date.getUTCFullYear(),
+    month: date.getUTCMonth(),
+    day: date.getUTCDate(),
+    weekday: date.getUTCDay(),
+    hour: date.getUTCHours(),
+    minute: date.getUTCMinutes()
+  }
+}
+
+function dateKey(parts) {
+  return String(parts.year) + "-" + paddedNumber(parts.month + 1) + "-" + paddedNumber(parts.day)
+}
+
+function previewDayRelation(parts, homeParts) {
+  var day = Date.UTC(parts.year, parts.month, parts.day) / 86400000
+  var homeDay = Date.UTC(homeParts.year, homeParts.month, homeParts.day) / 86400000
+  var difference = Math.round(day - homeDay)
+  if (difference === -1) return "Yesterday"
+  if (difference === 0) return "Today"
+  if (difference === 1) return "Tomorrow"
+  return WEEKDAY_SHORT_NAMES[parts.weekday] + " " + parts.day + " "
+    + MONTH_SHORT_NAMES[parts.month] + " " + parts.year
+}
+
+// Keep the clock faces and labels under the pointer while the exact zoneinfo
+// render is still in flight. The helper replaces this offset-based preview as
+// soon as it returns, including any DST transition crossed by the slider.
+function previewRenderedRows(rows, renderedTimestamp, planningTimestamp) {
+  var source = Array.isArray(rows) ? rows : []
+  var rendered = Number(renderedTimestamp)
+  var planning = Number(planningTimestamp)
+  if (source.length === 0 || !isFinite(rendered) || !isFinite(planning)
+      || rendered <= 0 || rendered === planning) return source
+
+  var home = source[0]
+  for (var h = 0; h < source.length; h++) {
+    if (source[h] && source[h].isHome === true) { home = source[h]; break }
+  }
+  var homeParts = shiftedDateParts(planning, home && home.utcOffsetMinutes)
+  var result = []
+  for (var i = 0; i < source.length; i++) {
+    var original = source[i] || ({})
+    var row = ({})
+    for (var key in original) row[key] = original[key]
+    var parts = shiftedDateParts(planning, original.utcOffsetMinutes)
+    var hour12 = parts.hour % 12 || 12
+    row.date = dateKey(parts)
+    row.dateLabel = WEEKDAY_SHORT_NAMES[parts.weekday] + " " + parts.day + " "
+      + MONTH_SHORT_NAMES[parts.month] + " " + parts.year
+    row.weekday = WEEKDAY_NAMES[parts.weekday]
+    row.time = paddedNumber(parts.hour) + ":" + paddedNumber(parts.minute)
+    row.time12 = String(hour12) + ":" + paddedNumber(parts.minute)
+    row.period = parts.hour < 12 ? "AM" : "PM"
+    row.hour = parts.hour
+    row.minute = parts.minute
+    row.isWeekend = parts.weekday === 0 || parts.weekday === 6
+    row.dayRelation = previewDayRelation(parts, homeParts)
+    result.push(row)
+  }
+  return result
+}
+
 function clampPlannerMinutes(value) {
   var minutes = Math.round(Number(value) / 15) * 15
   if (!isFinite(minutes)) return 0
@@ -302,6 +380,7 @@ if (typeof module !== "undefined") {
     renameLocation: renameLocation,
     moveLocation: moveLocation,
     setHomeLocation: setHomeLocation,
+    previewRenderedRows: previewRenderedRows,
     clampPlannerMinutes: clampPlannerMinutes,
     formatDuration: formatDuration,
     planningLabel: planningLabel,

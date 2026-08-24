@@ -100,6 +100,25 @@ assert.equal(Model.homeLocation(newHome).id, "new-york")
 const withoutHome = Model.removeLocation(newHome, "new-york")
 assert.equal(withoutHome[0].isHome, true)
 
+const previewBaseTimestamp = Date.UTC(2026, 7, 24, 10, 0)
+const previewRows = Model.previewRenderedRows([
+  {
+    id: "home", isHome: true, utcOffsetMinutes: 120,
+    date: "2026-08-24", weekday: "Monday", time: "12:00", time12: "12:00",
+    period: "PM", hour: 12, minute: 0, dayRelation: "Today"
+  },
+  {
+    id: "west", isHome: false, utcOffsetMinutes: -420,
+    date: "2026-08-24", weekday: "Monday", time: "03:00", time12: "3:00",
+    period: "AM", hour: 3, minute: 0, dayRelation: "Today"
+  }
+], previewBaseTimestamp, previewBaseTimestamp + 13 * 60 * 60 * 1000)
+assert.equal(previewRows[0].weekday, "Tuesday")
+assert.equal(previewRows[0].time12, "1:00")
+assert.equal(previewRows[0].period, "AM")
+assert.equal(previewRows[1].time, "16:00")
+assert.equal(previewRows[1].dayRelation, "Yesterday")
+
 assert.equal(Model.clampPlannerMinutes(22), 15)
 assert.equal(Model.clampPlannerMinutes(999), 720)
 assert.equal(Model.planningLabel(0, true), "NOW")

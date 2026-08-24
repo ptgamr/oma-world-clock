@@ -27,6 +27,9 @@ Item {
   property string hourFormat: "12"
 
   property var renderedRows: []
+  property double renderedTimestamp: 0
+  readonly property var visibleRows: Model.previewRenderedRows(
+    renderedRows, renderedTimestamp, planningTimestamp)
   property var calendarData: ({ monthLabel: "Loading…", weekNumber: 0, days: [] })
   property string errorMessage: ""
   property double dayAnchorTimestamp: Date.now()
@@ -278,8 +281,8 @@ Item {
   }
 
   function renderedRow(id) {
-    for (var i = 0; i < root.renderedRows.length; i++)
-      if (root.renderedRows[i].id === id) return root.renderedRows[i]
+    for (var i = 0; i < root.visibleRows.length; i++)
+      if (root.visibleRows[i].id === id) return root.visibleRows[i]
     return null
   }
 
@@ -359,6 +362,7 @@ Item {
           }
           if (Number(result.timestampMs) !== root.activeRenderTimestamp) return
           if (root.activeRenderTimestamp !== Math.round(root.planningTimestamp)) return
+          root.renderedTimestamp = Number(result.timestampMs)
           root.renderedRows = result.rows || []
           root.calendarData = result.calendar || { monthLabel: "", weekNumber: 0, days: [] }
           root.errorMessage = ""
