@@ -1668,7 +1668,7 @@ Panel {
             id: plannerTooltipText
             anchors.centerIn: parent
             text: root.plannerTooltipText + " · "
-              + Model.formatDuration(root.plannerOffsetMinutes, true)
+              + Model.formatDuration(root.plannerOffsetMinutes, true) + " · T now"
             color: root.contentForeground
             font.family: root.contentFontFamily
             font.pixelSize: Style.font.bodySmall
