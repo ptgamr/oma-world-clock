@@ -664,6 +664,9 @@ The shortcut guide is a fixed footer outside the scrollable clock content, so
 it remains visible for long location lists and while the selected row is
 auto-scrolled into view.
 
+Starting Add temporarily replaces the clock list and timeline controls with a
+focused timezone search form. Completing or cancelling Add restores the clocks.
+
 Search:
 
 ```text

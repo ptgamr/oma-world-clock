@@ -322,6 +322,10 @@ Panel {
   }
 
   function shortcutHint() {
+    if (root.addingLocation)
+      return "Type to search · ↑/↓ choose · Enter select/add · Esc cancel"
+    if (root.renamingId !== "")
+      return "Type a new name · Enter save · Esc cancel"
     if (root.showingSettings)
       return "j/k · ←/→ change · Enter apply · a analog · 1/2 format · s done"
     return "j/k select · PgUp/PgDn jump · J/K move · A add · R rename · D delete · H home · S settings · O full"
@@ -501,6 +505,7 @@ Panel {
   function startAddingLocation() {
     root.renamingId = ""
     root.addingLocation = true
+    root.localError = ""
     root.chosenTimezone = ""
     root.chosenTimezoneName = ""
     root.chosenLatitude = null
@@ -520,6 +525,7 @@ Panel {
     root.addingLocation = false
     root.renamingId = ""
     root.timezoneSuggestions = []
+    root.localError = ""
     searchDebounce.stop()
     Qt.callLater(function() {
       if (root.opened) keyCatcher.forceActiveFocus()
@@ -578,12 +584,17 @@ Panel {
     }
 
     var name = String(nameField.text || "").trim() || defaultName
-    root.persistLocations(Model.addLocation(
-      root.locations, name, timezone, latitude, longitude))
+    var next = Model.addLocation(root.locations, name, timezone, latitude, longitude)
+    root.persistLocations(next)
     root.addingLocation = false
+    root.selectedIndex = next.length - 1
+    root.cursorActive = true
     root.timezoneSuggestions = []
     root.localError = ""
-    Qt.callLater(function() { keyCatcher.forceActiveFocus() })
+    Qt.callLater(function() {
+      keyCatcher.forceActiveFocus()
+      root.revealSelection()
+    })
   }
 
   function capturePreview() {
@@ -1128,6 +1139,7 @@ Panel {
 
           Column {
             id: clocks
+            visible: !root.addingLocation
             width: parent.width
             spacing: Style.space(4)
 
@@ -1329,6 +1341,7 @@ Panel {
           }
 
           Rectangle {
+            visible: !root.addingLocation
             width: parent.width
             height: Style.spacing.hairline
             color: root.contentForeground
@@ -1336,6 +1349,7 @@ Panel {
           }
 
           Item {
+            visible: !root.addingLocation
             width: parent.width
             height: plannerSlider.implicitHeight
 
@@ -1378,6 +1392,7 @@ Panel {
           }
 
           Text {
+            visible: !root.addingLocation
             width: parent.width
             horizontalAlignment: Text.AlignHCenter
             text: Model.planningLabel(root.plannerOffsetMinutes, root.followingNow)

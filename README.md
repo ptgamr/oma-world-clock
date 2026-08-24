@@ -124,6 +124,8 @@ locations the user has already configured.
 - Press `a` to add a clock, `r` to rename the selected clock, and `d` or Delete
   to remove the selected clock. These actions work directly; there is no
   separate management mode.
+- Add temporarily replaces the clocks and timeline controls with the timezone
+  search form. Adding or cancelling restores the compact clock list.
 - Press `s` to open Settings. Use `j`/`k` to select a setting, Left/Right to
   change it, and Enter/Space to apply it. `a` toggles analog clocks; `1` and
   `2` select 12- and 24-hour formats directly.
