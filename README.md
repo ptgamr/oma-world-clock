@@ -2,7 +2,13 @@
 
 A standalone world-clock and meeting-planner plugin for the Omarchy Quattro bar. It is designed to live beside the built-in `omarchy.clock`, not replace it.
 
-![World Clock meeting planner](screenshots/world-clock-panel.png)
+## UI evolution
+
+| v1 — clocks first | v2 — calendar first | v3 — compact (current) |
+| --- | --- | --- |
+| [![v1 clocks-first panel](screenshots/world-clock-panel-v1.png)](screenshots/world-clock-panel-v1.png) | [![v2 calendar-first panel](screenshots/world-clock-panel-v2.png)](screenshots/world-clock-panel-v2.png) | [![v3 compact panel](screenshots/world-clock-panel-v3.png)](screenshots/world-clock-panel-v3.png) |
+
+New UI captures increment the suffix (`v4`, `v5`, …) so earlier layouts remain available for comparison.
 
 Version 0.1 includes:
 
@@ -49,6 +55,7 @@ Time (`America/Los_Angeles`, so it follows PST/PDT automatically).
 - Click a day in the calendar strip to plan on that home-timezone date.
 - Use the calendar arrows to move one week at a time, or click `Today` to return.
 - Click `Manage` to rename, reorder, remove, or change the home location.
+- To make Ho Chi Minh home, click `Manage`, click `Home` on its row, then click `Done`.
 - Click `Add location` and search by a city such as `London` or an IANA ID such as `Europe/London`.
 
 Green/theme-accent `WORK` means Monday-Friday 09:00-17:00, `EDGE` means 07:00-09:00 or 17:00-20:00, and `OFF` covers nights and weekends.
