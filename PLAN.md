@@ -1038,13 +1038,13 @@ Improve:
 
 ## Phase 9 — Expanded Planner Window (implemented)
 
-The compact panel now exposes `Full view`, which opens a separate resizable
+The compact panel now exposes `Open full view`, which opens a separate resizable
 Omarchy `FloatingWindow`. Both surfaces use one session service, so location
 changes and the canonical planning instant stay synchronized.
 
 Implemented:
 
-- compact-panel `Full view` action
+- compact-panel `Open full view` action
 - shared clocks, preferences, and selected instant
 - DST-correct horizontal 24-hour timeline
 - click/drag meeting-start selection with 15-minute snapping

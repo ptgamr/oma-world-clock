@@ -584,7 +584,7 @@ Panel {
               spacing: Style.space(4)
 
               Button {
-                text: "Full view"
+                text: "Open full view"
                 foreground: root.contentForeground
                 fontFamily: root.contentFontFamily
                 fontSize: Style.font.bodySmall

@@ -102,7 +102,7 @@ locations the user has already configured.
 - Click `Settings` to show or hide analog clocks and choose 12- or 24-hour time.
 - To change the home location later, click `Manage`, click `Home` on its row, then click `Done`.
 - Click `Add location` and search by a city such as `London` or an IANA ID such as `Europe/London`.
-- Click `Full view` to open the resizable planner window.
+- Click `Open full view` to open the resizable planner window.
 - Click or drag across the 24-hour timeline to choose the meeting start.
 - Use `−` / `+` to change the meeting duration in 15-minute steps.
 - Click `Copy meeting time` to copy every location's local time range.
