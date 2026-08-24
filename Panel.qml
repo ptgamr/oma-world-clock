@@ -715,7 +715,7 @@ Panel {
                           text: clockCard.modelData.name
                           color: root.contentForeground
                           font.family: root.contentFontFamily
-                          font.pixelSize: Style.font.body
+                          font.pixelSize: Style.font.title
                           font.bold: true
                         }
 
@@ -730,16 +730,24 @@ Panel {
                         }
                       }
 
-                      Text {
-                        width: parent.width
-                        text: clockCard.rendered
-                          ? Model.metadataForRow(clockCard.rendered,
-                              root.showTimezoneAbbreviation, root.showRelativeOffset)
-                          : clockCard.modelData.timezone
-                        color: Qt.darker(root.contentForeground, 1.5)
-                        font.family: root.contentFontFamily
-                        font.pixelSize: Style.font.bodySmall
-                        elide: Text.ElideRight
+                      Row {
+                        spacing: Style.space(7)
+
+                        Text {
+                          text: clockCard.rendered ? clockCard.rendered.weekday : "Loading…"
+                          color: Qt.darker(root.contentForeground, 1.35)
+                          font.family: root.contentFontFamily
+                          font.pixelSize: Style.font.bodySmall
+                        }
+
+                        Text {
+                          text: "●  " + clockCard.availability.label
+                          color: root.availabilityColor(clockCard.availability)
+                          font.family: root.contentFontFamily
+                          font.pixelSize: Style.font.bodySmall
+                          font.bold: true
+                          font.letterSpacing: 0.5
+                        }
                       }
                     }
 
@@ -760,7 +768,7 @@ Panel {
 
                     Column {
                       id: timeBlock
-                      width: Style.space(88)
+                      width: Style.space(112)
                       anchors.right: parent.right
                       anchors.verticalCenter: parent.verticalCenter
                       spacing: Style.space(1)
@@ -774,7 +782,7 @@ Panel {
                           text: clockCard.rendered ? clockCard.rendered.time12 : "--:--"
                           color: root.contentForeground
                           font.family: root.contentFontFamily
-                          font.pixelSize: Style.font.title
+                          font.pixelSize: Style.font.iconLarge
                           font.bold: true
                         }
 
@@ -789,13 +797,16 @@ Panel {
                       }
 
                       Text {
-                        anchors.right: parent.right
-                        text: "●  " + clockCard.availability.label
-                        color: root.availabilityColor(clockCard.availability)
+                        width: parent.width
+                        horizontalAlignment: Text.AlignRight
+                        text: clockCard.rendered
+                          ? Model.metadataForRow(clockCard.rendered,
+                              root.showTimezoneAbbreviation, root.showRelativeOffset, false)
+                          : clockCard.modelData.timezone
+                        color: Qt.darker(root.contentForeground, 1.35)
                         font.family: root.contentFontFamily
                         font.pixelSize: Style.font.bodySmall
-                        font.bold: true
-                        font.letterSpacing: 0.5
+                        elide: Text.ElideLeft
                       }
                     }
                   }
