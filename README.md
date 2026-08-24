@@ -26,9 +26,13 @@ A standalone world-clock and meeting-planner plugin for the Omarchy Quattro bar.
 
 [![v8 square appearance switch](screenshots/world-clock-panel-v8.png)](screenshots/world-clock-panel-v8.png)
 
-**v9 — timezone-aware three-clock first run (current)**
+**v9 — timezone-aware three-clock first run**
 
 [![v9 timezone-aware first-run defaults](screenshots/world-clock-panel-v9.png)](screenshots/world-clock-panel-v9.png)
+
+**v10 — expanded meeting planner (current)**
+
+[![v10 expanded planner with timeline and world map](screenshots/world-clock-full-v10.png)](screenshots/world-clock-full-v10.png)
 
 New UI captures increment the suffix (`v10`, `v11`, …) so earlier layouts remain available for comparison.
 
@@ -44,6 +48,10 @@ Version 0.1 includes:
 - appearance settings for analog visibility and 12/24-hour time
 - add, remove, rename, reorder, and set-home controls
 - timezone search backed by the installed system timezone database
+- a separate resizable planner window sharing the compact panel's clocks and selected instant
+- a DST-correct horizontal 24-hour timeline with a selectable meeting range
+- 15-minute meeting-duration controls and a `Copy meeting time` action
+- a local vector world map with timezone markers and selected-time day/night shading
 - configuration persistence in this plugin's own `shell.json` bar entry
 
 ## Requirements
@@ -94,12 +102,17 @@ locations the user has already configured.
 - Click `Settings` to show or hide analog clocks and choose 12- or 24-hour time.
 - To change the home location later, click `Manage`, click `Home` on its row, then click `Done`.
 - Click `Add location` and search by a city such as `London` or an IANA ID such as `Europe/London`.
+- Click `Full view` to open the resizable planner window.
+- Click or drag across the 24-hour timeline to choose the meeting start.
+- Use `−` / `+` to change the meeting duration in 15-minute steps.
+- Click `Copy meeting time` to copy every location's local time range.
+- The world map follows the same selected instant and shades the night side locally.
 
 ## Validate
 
 ```sh
 omarchy plugin validate .
-qmllint -I /usr/share/omarchy/shell BarWidget.qml Panel.qml
+qmllint -I /usr/share/omarchy/shell BarWidget.qml Panel.qml FullView.qml components/*.qml
 python -m unittest discover -s tests
 node tests/model-test.js
 ```
@@ -122,8 +135,17 @@ omarchy-shell shell setBarWidget io.github.ptgamr.world-clock _capturePreview fa
 ```
 
 A secure compositor lock can prevent the popup surface from mapping. The
-checked-in screenshot was therefore rendered offscreen from the same panel
-layout, current Omarchy theme values, and timezone-helper output.
+checked-in v10 screenshot was therefore rendered offscreen from the real
+full-view QML components, current Omarchy theme values, and deterministic
+timezone-helper-shaped data.
+
+The expanded view also supports a fixed-path reviewer capture while the
+session is unlocked:
+
+```sh
+omarchy-shell shell summon io.github.ptgamr.world-clock '{"capturePreview":true}'
+# writes /tmp/omarchy-world-clock-full-preview.png
+```
 
 ## Configuration
 

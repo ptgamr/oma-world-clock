@@ -1036,6 +1036,28 @@ Improve:
 - panel sizing
 - theme integration
 
+## Phase 9 — Expanded Planner Window (implemented)
+
+The compact panel now exposes `Full view`, which opens a separate resizable
+Omarchy `FloatingWindow`. Both surfaces use one session service, so location
+changes and the canonical planning instant stay synchronized.
+
+Implemented:
+
+- compact-panel `Full view` action
+- shared clocks, preferences, and selected instant
+- DST-correct horizontal 24-hour timeline
+- click/drag meeting-start selection with 15-minute snapping
+- adjustable meeting duration and `Copy meeting time`
+- local vector world map with IANA timezone markers
+- selected-time day/night terminator
+
+Acceptance criteria:
+
+The compact panel and expanded window show the same clock order and selected
+time, and a copied meeting summary contains the correct local range for every
+timezone.
+
 ---
 
 # 23. MVP
@@ -1057,6 +1079,10 @@ Version `0.1` should include:
 - planning date
 - reset to now
 - working-hours indicator
+- resizable expanded planner
+- horizontal 24-hour timezone timeline
+- meeting range and copy action
+- local day/night world map
 
 It must coexist with `omarchy.clock`.
 
@@ -1071,7 +1097,7 @@ A polished `1.0` should add:
 - polished timezone search
 - smooth planner interaction
 - reliable DST handling
-- copy meeting time
+- exact per-city map coordinates when a timezone covers multiple cities
 
 Example:
 
@@ -1087,23 +1113,24 @@ New York — 5:00 PM
 
 # 25. Future Features
 
-## Expanded Planner Window
+## Expanded Planner Window (MVP implemented)
 
 Keep the bar popup compact for quick clock checks. Rich planning views should
 open in a separate, resizable Omarchy `FloatingWindow` exposed through a
 `panel` entry point alongside the existing `bar-widget` entry point.
 
-The expanded workspace can grow to include:
+The expanded workspace now includes:
 
 - a horizontal 24-hour availability timeline for every location
 - a selected meeting-time range shared by all rows
 - a world map with location markers and a day/night overlay
 - larger calendar navigation and copy/share controls
 
-The compact panel and expanded window must share the same locations and one
-canonical planning timestamp. Coordinates should be stored separately from
-IANA timezone IDs, and the map should use local vector assets rather than
-requiring an external map service.
+The compact panel and expanded window share the same locations and one
+canonical planning timestamp. The MVP derives representative coordinates from
+the installed IANA timezone tables and uses a local vector map, so it requires
+no external map service. Exact city coordinates can later be stored separately
+from timezone IDs for renamed clocks such as teams or people.
 
 ## Find Best Meeting Time
 
