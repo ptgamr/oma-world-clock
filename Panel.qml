@@ -58,7 +58,6 @@ Panel {
     ? secondsClock.seconds
     : new Date(planningTimestamp).getUTCSeconds()
 
-  property bool managingLocations: false
   property bool showingSettings: false
   property bool addingLocation: false
   property string renamingId: ""
@@ -110,7 +109,6 @@ Panel {
     root.locationHoverSuppressed = false
     root.lastLocationPointer = Qt.point(Number.NaN, Number.NaN)
     root.cancelEditors()
-    root.managingLocations = false
     root.showingSettings = false
     root.settingsCursorActive = false
     root.controller.hide()
@@ -244,35 +242,31 @@ Panel {
 
   function toggleSettings() {
     root.cancelEditors()
-    root.managingLocations = false
     root.showingSettings = !root.showingSettings
     root.settingsIndex = 0
     root.settingsCursorActive = root.showingSettings
   }
 
-  function toggleManage() {
-    root.cancelEditors()
-    root.showingSettings = false
-    root.settingsCursorActive = false
-    root.managingLocations = !root.managingLocations
-    if (root.managingLocations)
+  function ensureSelectedLocation() {
+    if (root.locations.length === 0) return null
+    if (!root.cursorActive)
       root.selectLocation(root.selectedIndex >= 0 ? root.selectedIndex : 0)
+    return root.selectedLocation()
   }
 
   function markSelectedHome() {
-    var location = root.selectedLocation()
+    var location = root.ensureSelectedLocation()
     if (location && !location.isHome) root.setHomeLocation(location.id)
   }
 
   function startRenameSelected() {
-    var location = root.selectedLocation()
-    if (root.managingLocations && location)
-      root.startRename(location.id, location.name)
+    var location = root.ensureSelectedLocation()
+    if (location) root.startRename(location.id, location.name)
   }
 
   function removeSelectedLocation() {
-    var location = root.selectedLocation()
-    if (root.managingLocations && location && root.locations.length > 1)
+    var location = root.ensureSelectedLocation()
+    if (location && root.locations.length > 1)
       root.removeLocation(location.id)
   }
 
@@ -309,19 +303,13 @@ Panel {
       root.activateSelectedSetting()
       return true
     }
-    if (root.managingLocations) {
-      root.startRenameSelected()
-      return true
-    }
     return false
   }
 
   function shortcutHint() {
     if (root.showingSettings)
       return "j/k · ←/→ change · Enter apply · a analog · 1/2 format · s done"
-    if (root.managingLocations)
-      return "j/k · J/K move · r rename · h home · x delete · a add · m done"
-    return "j/k · J/K move · h home · m manage · s settings · o full view"
+    return "j/k select · J/K move · A add · R rename · D delete · H home · S settings"
   }
 
   function clockRowStep(index) {
@@ -683,8 +671,7 @@ Panel {
       Keys.onPressed: function(event) {
         if (root.editorOpen) return
         if (event.key === Qt.Key_Escape) {
-          if (root.managingLocations || root.showingSettings) {
-            root.managingLocations = false
+          if (root.showingSettings) {
             root.showingSettings = false
           } else {
             root.close()
@@ -718,29 +705,25 @@ Panel {
         } else if (!root.showingSettings && event.text === "K") {
           root.moveSelectedLocation(-1)
           event.accepted = true
-        } else if (event.text === "m" || event.text === "M") {
-          root.toggleManage()
-          event.accepted = true
         } else if (event.text === "s" || event.text === "S") {
           root.toggleSettings()
           event.accepted = true
         } else if (!root.showingSettings && (event.text === "h" || event.text === "H")) {
           root.markSelectedHome()
           event.accepted = true
-        } else if (root.managingLocations && (event.text === "r" || event.text === "R")) {
+        } else if (!root.showingSettings && (event.text === "r" || event.text === "R")) {
           root.startRenameSelected()
           event.accepted = true
-        } else if (root.managingLocations && (event.key === Qt.Key_Delete
+        } else if (!root.showingSettings && (event.key === Qt.Key_Delete
+            || event.text === "d" || event.text === "D"
             || event.text === "x" || event.text === "X")) {
           root.removeSelectedLocation()
           event.accepted = true
         } else if (event.text === "a" || event.text === "A") {
-          if (root.managingLocations) root.startAddingLocation()
-          else if (root.showingSettings) {
+          if (root.showingSettings) {
             root.selectSetting(0)
             root.setAnalogClocks(!root.showAnalogClock)
-          }
-          else return
+          } else root.startAddingLocation()
           event.accepted = true
         } else if (root.showingSettings && event.text === "1") {
           root.selectSetting(1)
@@ -974,19 +957,6 @@ Panel {
                 }
               }
 
-              Button {
-                id: manageButton
-                text: root.managingLocations ? "Done" : "Manage"
-                selected: root.managingLocations
-                foreground: root.contentForeground
-                fontFamily: root.contentFontFamily
-                fontSize: Style.font.bodySmall
-                horizontalPadding: Style.space(9)
-                verticalPadding: Style.space(5)
-                onClicked: {
-                  root.toggleManage()
-                }
-              }
             }
           }
 
@@ -1320,68 +1290,6 @@ Panel {
                     }
                   }
 
-                  Row {
-                    visible: root.managingLocations
-                    spacing: Style.space(4)
-
-                    Button {
-                      text: "Rename"
-                      foreground: root.contentForeground
-                      fontFamily: root.contentFontFamily
-                      fontSize: Style.font.bodySmall
-                      horizontalPadding: Style.space(7)
-                      verticalPadding: Style.space(4)
-                      onClicked: root.startRename(clockCard.modelData.id, clockCard.modelData.name)
-                    }
-
-                    Button {
-                      text: "Home"
-                      enabled: !clockCard.modelData.isHome
-                      opacity: enabled ? 1 : 0.35
-                      foreground: root.contentForeground
-                      fontFamily: root.contentFontFamily
-                      fontSize: Style.font.bodySmall
-                      horizontalPadding: Style.space(7)
-                      verticalPadding: Style.space(4)
-                      onClicked: root.setHomeLocation(clockCard.modelData.id)
-                    }
-
-                    Button {
-                      text: "↑"
-                      enabled: clockCard.index > 0
-                      opacity: enabled ? 1 : 0.35
-                      foreground: root.contentForeground
-                      fontFamily: root.contentFontFamily
-                      fontSize: Style.font.bodySmall
-                      horizontalPadding: Style.space(7)
-                      verticalPadding: Style.space(4)
-                      onClicked: root.moveLocation(clockCard.modelData.id, -1)
-                    }
-
-                    Button {
-                      text: "↓"
-                      enabled: clockCard.index < root.locations.length - 1
-                      opacity: enabled ? 1 : 0.35
-                      foreground: root.contentForeground
-                      fontFamily: root.contentFontFamily
-                      fontSize: Style.font.bodySmall
-                      horizontalPadding: Style.space(7)
-                      verticalPadding: Style.space(4)
-                      onClicked: root.moveLocation(clockCard.modelData.id, 1)
-                    }
-
-                    Button {
-                      text: "Remove"
-                      enabled: root.locations.length > 1
-                      opacity: enabled ? 1 : 0.35
-                      foreground: Color.urgent
-                      fontFamily: root.contentFontFamily
-                      fontSize: Style.font.bodySmall
-                      horizontalPadding: Style.space(7)
-                      verticalPadding: Style.space(4)
-                      onClicked: root.removeLocation(clockCard.modelData.id)
-                    }
-                  }
                 }
               }
             }
@@ -1674,15 +1582,6 @@ Panel {
             }
           }
 
-          Button {
-            visible: root.managingLocations && !root.editorOpen
-            anchors.horizontalCenter: parent.horizontalCenter
-            text: "+ Add location"
-            foreground: root.contentForeground
-            fontFamily: root.contentFontFamily
-            fontSize: Style.font.body
-            onClicked: root.startAddingLocation()
-          }
         }
       }
     }

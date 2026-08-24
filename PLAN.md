@@ -647,10 +647,15 @@ Users should be able to:
 - reorder
 - choose home location
 
-UI:
+The compact panel has no separate management mode. Location actions operate on
+the keyboard-selected row while every clock keeps the same compact height:
 
 ```text
-+ Add location
+A          Add location
+R          Rename selected location
+D/Delete   Remove selected location
+H          Choose selected location as Home
+Shift J/K  Move selected location down/up
 ```
 
 Search:

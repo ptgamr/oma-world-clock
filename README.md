@@ -120,20 +120,19 @@ locations the user has already configured.
 - Press `Shift+j` / `Shift+k` to move the selected clock down/up, or drag any
   clock row to reorder it.
 - Press `h` to make the selected clock the Home location.
-- Press `m` to open Manage. Use `r` or Enter to rename the selected clock,
-  `x` or Delete to remove it, and `a` to add a location.
+- Press `a` to add a clock, `r` to rename the selected clock, and `d` or Delete
+  to remove the selected clock. These actions work directly; there is no
+  separate management mode.
 - Press `s` to open Settings. Use `j`/`k` to select a setting, Left/Right to
   change it, and Enter/Space to apply it. `a` toggles analog clocks; `1` and
   `2` select 12- and 24-hour formats directly.
 - Press `o` to open the full planner view.
-- Press Escape to leave Manage/Settings first; press it again to close the
-  panel.
+- Press Escape to leave Settings first; press it again to close the panel.
 - Click a day in the calendar strip to plan on that home-timezone date.
 - Use the calendar arrows to move one week at a time, or click `Today` to return.
-- Click `Manage` to rename, reorder, remove, or change the home location.
 - Click `Settings` to show or hide analog clocks and choose 12- or 24-hour time.
-- To change the home location later, click `Manage`, click `Home` on its row, then click `Done`.
-- Click `Add location` and search by a city such as `London` or an IANA ID such as `Europe/London`.
+- To change the home location later, select its clock and press `h`.
+- Press `a` and search by a city such as `London` or an IANA ID such as `Europe/London`.
 - Click `Open full view` to open the resizable planner window.
 - Click or drag across the 24-hour timeline to choose the meeting start.
 - Use `−` / `+` to change the meeting duration in 15-minute steps.
