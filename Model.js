@@ -1,12 +1,22 @@
 // Pure state and presentation helpers for the world-clock plugin. Keep this
 // file free of Qt APIs so the important behavior can also be tested with Node.
 
-var DEFAULT_LOCATIONS = [
-  { id: "hanoi", name: "Hanoi", timezone: "Asia/Ho_Chi_Minh", isHome: true },
-  { id: "berlin", name: "Berlin", timezone: "Europe/Berlin", isHome: false },
-  { id: "pacific-time", name: "Pacific Time", timezone: "America/Los_Angeles", isHome: false },
-  { id: "wellington", name: "Wellington", timezone: "Pacific/Auckland", isHome: false }
-]
+var REGION_DEFAULTS = {
+  asia: { id: "ho-chi-minh", name: "Ho Chi Minh", timezone: "Asia/Ho_Chi_Minh", isHome: false },
+  europe: { id: "berlin", name: "Berlin", timezone: "Europe/Berlin", isHome: false },
+  america: { id: "new-york", name: "New York", timezone: "America/New_York", isHome: false },
+  africa: { id: "johannesburg", name: "Johannesburg", timezone: "Africa/Johannesburg", isHome: false },
+  oceania: { id: "sydney", name: "Sydney", timezone: "Australia/Sydney", isHome: false }
+}
+
+var COMPLEMENTARY_REGIONS = {
+  asia: ["europe", "america"],
+  europe: ["asia", "america"],
+  america: ["europe", "asia"],
+  africa: ["europe", "asia"],
+  oceania: ["asia", "america"],
+  other: ["europe", "asia"]
+}
 
 function cleanText(value) {
   return String(value === undefined || value === null ? "" : value)
@@ -22,8 +32,38 @@ function cloneLocation(location) {
   }
 }
 
-function defaultLocations() {
-  return DEFAULT_LOCATIONS.map(cloneLocation)
+function timezoneRegion(timezone) {
+  var area = cleanText(timezone).split("/")[0]
+  if (area === "Asia") return "asia"
+  if (area === "Europe") return "europe"
+  if (area === "America" || area === "US" || area === "Canada"
+      || area === "Mexico" || area === "Brazil" || area === "Chile") return "america"
+  if (area === "Africa") return "africa"
+  if (area === "Australia" || area === "Pacific") return "oceania"
+  return "other"
+}
+
+function timezoneDisplayName(timezone) {
+  var value = cleanText(timezone) || "Etc/UTC"
+  if (value === "UTC" || value === "Etc/UTC") return "UTC"
+  var parts = value.split("/")
+  return parts[parts.length - 1].replace(/_/g, " ")
+}
+
+function defaultLocations(systemTimezone) {
+  var timezone = cleanText(systemTimezone) || "Etc/UTC"
+  var name = timezoneDisplayName(timezone)
+  var home = {
+    id: slugify(name),
+    name: name,
+    timezone: timezone,
+    isHome: true
+  }
+  var regions = COMPLEMENTARY_REGIONS[timezoneRegion(timezone)] || COMPLEMENTARY_REGIONS.other
+  var locations = [home]
+  for (var i = 0; i < regions.length; i++)
+    locations.push(cloneLocation(REGION_DEFAULTS[regions[i]]))
+  return locations
 }
 
 function slugify(value) {

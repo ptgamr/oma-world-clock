@@ -1,20 +1,52 @@
 const assert = require("node:assert/strict")
 const Model = require("../Model.js")
 
-const defaults = Model.defaultLocations()
-assert.equal(defaults.length, 4)
+const defaults = Model.defaultLocations("Asia/Ho_Chi_Minh")
+assert.equal(defaults.length, 3)
 assert.deepEqual(defaults.map(location => location.id), [
-  "hanoi",
+  "ho-chi-minh",
   "berlin",
-  "pacific-time",
-  "wellington"
+  "new-york"
 ])
 assert.equal(Model.homeLocation(defaults).timezone, "Asia/Ho_Chi_Minh")
-assert.equal(Model.homeLocation(defaults).name, "Hanoi")
-assert.equal(defaults.find(location => location.id === "wellington").isHome, false)
+assert.equal(Model.homeLocation(defaults).name, "Ho Chi Minh")
 assert.equal(defaults.find(location => location.id === "berlin").timezone, "Europe/Berlin")
-assert.equal(defaults.find(location => location.id === "hanoi").timezone, "Asia/Ho_Chi_Minh")
-assert.equal(defaults.find(location => location.id === "pacific-time").timezone, "America/Los_Angeles")
+assert.equal(defaults.find(location => location.id === "new-york").timezone, "America/New_York")
+
+const europeanDefaults = Model.defaultLocations("Europe/Paris")
+assert.deepEqual(europeanDefaults.map(location => location.timezone), [
+  "Europe/Paris",
+  "Asia/Ho_Chi_Minh",
+  "America/New_York"
+])
+
+const americanDefaults = Model.defaultLocations("America/Chicago")
+assert.deepEqual(americanDefaults.map(location => location.timezone), [
+  "America/Chicago",
+  "Europe/Berlin",
+  "Asia/Ho_Chi_Minh"
+])
+
+const oceanianDefaults = Model.defaultLocations("Pacific/Auckland")
+assert.deepEqual(oceanianDefaults.map(location => location.timezone), [
+  "Pacific/Auckland",
+  "Asia/Ho_Chi_Minh",
+  "America/New_York"
+])
+
+const africanDefaults = Model.defaultLocations("Africa/Cairo")
+assert.deepEqual(africanDefaults.map(location => location.timezone), [
+  "Africa/Cairo",
+  "Europe/Berlin",
+  "Asia/Ho_Chi_Minh"
+])
+
+const utcDefaults = Model.defaultLocations()
+assert.deepEqual(utcDefaults.map(location => location.timezone), [
+  "Etc/UTC",
+  "Europe/Berlin",
+  "Asia/Ho_Chi_Minh"
+])
 
 const duplicateHomes = Model.normalizeLocations([
   { id: "one", name: "One", timezone: "Pacific/Auckland", isHome: true },
@@ -32,10 +64,10 @@ assert.equal(moved.at(-2).timezone, "Asia/Kathmandu")
 const renamed = Model.renameLocation(moved, "berlin", "Work")
 assert.equal(renamed.find(location => location.id === "berlin").name, "Work")
 
-const newHome = Model.setHomeLocation(renamed, "pacific-time")
-assert.equal(Model.homeLocation(newHome).id, "pacific-time")
+const newHome = Model.setHomeLocation(renamed, "new-york")
+assert.equal(Model.homeLocation(newHome).id, "new-york")
 
-const withoutHome = Model.removeLocation(newHome, "pacific-time")
+const withoutHome = Model.removeLocation(newHome, "new-york")
 assert.equal(withoutHome[0].isHome, true)
 
 assert.equal(Model.clampPlannerMinutes(22), 15)
