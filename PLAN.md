@@ -667,6 +667,10 @@ auto-scrolled into view.
 Starting Add temporarily replaces the clock list and timeline controls with a
 focused timezone search form. Completing or cancelling Add restores the clocks.
 
+Settings follows the same focused-state layout: appearance controls replace the
+clock list and timeline until Settings is closed, avoiding an inline section
+that pushes clock rows down.
+
 Search:
 
 ```text

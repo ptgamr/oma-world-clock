@@ -62,6 +62,7 @@ Panel {
   property bool addingLocation: false
   property string renamingId: ""
   readonly property bool editorOpen: addingLocation || renamingId !== ""
+  readonly property bool showingClockContent: !addingLocation && !showingSettings
   property int selectedIndex: -1
   property bool cursorActive: false
   property int settingsIndex: 0
@@ -1139,7 +1140,7 @@ Panel {
 
           Column {
             id: clocks
-            visible: !root.addingLocation
+            visible: root.showingClockContent
             width: parent.width
             spacing: Style.space(4)
 
@@ -1341,7 +1342,7 @@ Panel {
           }
 
           Rectangle {
-            visible: !root.addingLocation
+            visible: root.showingClockContent
             width: parent.width
             height: Style.spacing.hairline
             color: root.contentForeground
@@ -1349,7 +1350,7 @@ Panel {
           }
 
           Item {
-            visible: !root.addingLocation
+            visible: root.showingClockContent
             width: parent.width
             height: plannerSlider.implicitHeight
 
@@ -1392,7 +1393,7 @@ Panel {
           }
 
           Text {
-            visible: !root.addingLocation
+            visible: root.showingClockContent
             width: parent.width
             horizontalAlignment: Text.AlignHCenter
             text: Model.planningLabel(root.plannerOffsetMinutes, root.followingNow)

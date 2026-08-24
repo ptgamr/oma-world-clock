@@ -130,6 +130,8 @@ locations the user has already configured.
 - Press `s` to open Settings. Use `j`/`k` to select a setting, Left/Right to
   change it, and Enter/Space to apply it. `a` toggles analog clocks; `1` and
   `2` select 12- and 24-hour formats directly.
+- Settings temporarily replaces the clocks and timeline controls with the
+  appearance controls. Closing Settings restores the compact clock list.
 - Press `o` to open the full planner view.
 - The shortcut guide stays pinned below the scrollable content, including with
   long lists of clocks.
