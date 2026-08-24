@@ -240,6 +240,21 @@ Panel {
     root.revealSelection()
   }
 
+  function visibleClockPageSize() {
+    var rowHeight = root.clockRowStep(root.selectedIndex >= 0 ? root.selectedIndex : 0)
+    return Math.max(1, Math.floor(scroll.height / Math.max(1, rowHeight)) - 1)
+  }
+
+  function moveSelectionPage(direction) {
+    root.moveSelection(direction * root.visibleClockPageSize())
+  }
+
+  function selectLocationBoundary(last) {
+    if (root.editorOpen || root.reorderBusy || root.locations.length === 0) return
+    root.suppressLocationHover()
+    root.selectLocation(last ? root.locations.length - 1 : 0)
+  }
+
   function toggleSettings() {
     root.cancelEditors()
     root.showingSettings = !root.showingSettings
@@ -309,7 +324,7 @@ Panel {
   function shortcutHint() {
     if (root.showingSettings)
       return "j/k · ←/→ change · Enter apply · a analog · 1/2 format · s done"
-    return "j/k select · J/K move · A add · R rename · D delete · H home · S settings"
+    return "j/k select · PgUp/PgDn jump · J/K move · A add · R rename · D delete · H home · S settings · O full"
   }
 
   function clockRowStep(index) {
@@ -655,7 +670,9 @@ Panel {
     centerOnBar: false
     focusTarget: keyCatcher
     contentWidth: panel.fittedContentWidth(Style.space(460))
-    contentHeight: panel.fittedContentHeight(contentColumn.implicitHeight, Style.space(760))
+    contentHeight: panel.fittedContentHeight(
+      contentColumn.implicitHeight + shortcutFooter.implicitHeight + Style.space(10),
+      Style.space(760))
 
     Rectangle {
       id: keyCatcher
@@ -695,6 +712,18 @@ Panel {
         } else if (event.key === Qt.Key_Up || event.text === "k") {
           if (root.showingSettings) root.moveSettingsSelection(-1)
           else root.moveSelection(-1)
+          event.accepted = true
+        } else if (!root.showingSettings && event.key === Qt.Key_PageDown) {
+          root.moveSelectionPage(1)
+          event.accepted = true
+        } else if (!root.showingSettings && event.key === Qt.Key_PageUp) {
+          root.moveSelectionPage(-1)
+          event.accepted = true
+        } else if (!root.showingSettings && event.key === Qt.Key_Home) {
+          root.selectLocationBoundary(false)
+          event.accepted = true
+        } else if (!root.showingSettings && event.key === Qt.Key_End) {
+          root.selectLocationBoundary(true)
           event.accepted = true
         } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter
             || event.key === Qt.Key_Space) {
@@ -750,7 +779,11 @@ Panel {
 
       Flickable {
         id: scroll
-        anchors.fill: parent
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: shortcutFooter.top
+        anchors.bottomMargin: Style.space(8)
         contentWidth: width
         contentHeight: contentColumn.implicitHeight
         clip: true
@@ -1354,16 +1387,6 @@ Panel {
             font.bold: true
           }
 
-          Text {
-            width: parent.width
-            horizontalAlignment: Text.AlignHCenter
-            text: root.shortcutHint()
-            color: Qt.darker(root.contentForeground, 1.6)
-            font.family: root.contentFontFamily
-            font.pixelSize: Style.font.bodySmall
-            wrapMode: Text.WordWrap
-          }
-
           Rectangle {
             id: renameEditor
             visible: root.renamingId !== ""
@@ -1582,6 +1605,53 @@ Panel {
             }
           }
 
+        }
+      }
+
+      Rectangle {
+        id: scrollTrack
+        visible: scroll.contentHeight > scroll.height
+        anchors.top: scroll.top
+        anchors.right: scroll.right
+        anchors.bottom: scroll.bottom
+        width: Style.spacing.hairline
+        color: root.contentForeground
+        opacity: 0.12
+
+        Rectangle {
+          width: parent.width
+          height: Math.max(Style.space(24),
+            parent.height * Math.min(1, scroll.visibleArea.heightRatio))
+          y: Math.min(parent.height - height,
+            parent.height * Math.max(0, scroll.visibleArea.yPosition))
+          color: Color.accent
+          opacity: 0.8
+        }
+      }
+
+      Column {
+        id: shortcutFooter
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        height: implicitHeight
+        spacing: Style.space(7)
+
+        Rectangle {
+          width: parent.width
+          height: Style.spacing.hairline
+          color: root.contentForeground
+          opacity: 0.14
+        }
+
+        Text {
+          width: parent.width
+          horizontalAlignment: Text.AlignHCenter
+          text: root.shortcutHint()
+          color: Qt.darker(root.contentForeground, 1.6)
+          font.family: root.contentFontFamily
+          font.pixelSize: Style.font.bodySmall
+          wrapMode: Text.WordWrap
         }
       }
     }

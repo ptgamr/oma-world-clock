@@ -116,7 +116,8 @@ locations the user has already configured.
 - Press `T` or click `NOW` to return to the live current instant.
 - Press `[` / `]` to move one calendar day; hold Shift to move one week.
 - Press `j`/`k` (or Down/Up) to select a clock. The first key press selects
-  the first/last row.
+  the first/last row, and the panel scrolls to keep it visible. Page Up/Page
+  Down jump by a visible page; Home/End select the first/last clock.
 - Press `Shift+j` / `Shift+k` to move the selected clock down/up, or drag any
   clock row to reorder it.
 - Press `h` to make the selected clock the Home location.
@@ -127,6 +128,8 @@ locations the user has already configured.
   change it, and Enter/Space to apply it. `a` toggles analog clocks; `1` and
   `2` select 12- and 24-hour formats directly.
 - Press `o` to open the full planner view.
+- The shortcut guide stays pinned below the scrollable content, including with
+  long lists of clocks.
 - Press Escape to leave Settings first; press it again to close the panel.
 - Click a day in the calendar strip to plan on that home-timezone date.
 - Use the calendar arrows to move one week at a time, or click `Today` to return.

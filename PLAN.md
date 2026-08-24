@@ -656,7 +656,13 @@ R          Rename selected location
 D/Delete   Remove selected location
 H          Choose selected location as Home
 Shift J/K  Move selected location down/up
+PgUp/PgDn  Move the selection by one visible page
+Home/End   Select the first/last location
 ```
+
+The shortcut guide is a fixed footer outside the scrollable clock content, so
+it remains visible for long location lists and while the selected row is
+auto-scrolled into view.
 
 Search:
 
