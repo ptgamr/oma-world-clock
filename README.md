@@ -114,13 +114,20 @@ locations the user has already configured.
 - Drag or scroll the slider to move all clocks continuously in 15-minute steps.
 - Press Left/Right for 15 minutes; hold Shift for one hour.
 - Press `T` or click `NOW` to return to the live current instant.
+- Press `[` / `]` to move one calendar day; hold Shift to move one week.
 - Press `j`/`k` (or Down/Up) to select a clock. The first key press selects
   the first/last row.
 - Press `Shift+j` / `Shift+k` to move the selected clock down/up, or drag any
   clock row to reorder it.
 - Press `h` to make the selected clock the Home location.
-- Press `m` to open or close Manage, and `s` to open or close Settings.
-- Press Escape to leave Manage/Settings first; press it again to close the panel.
+- Press `m` to open Manage. Use `r` or Enter to rename the selected clock,
+  `x` or Delete to remove it, and `a` to add a location.
+- Press `s` to open Settings. Use `j`/`k` to select a setting, Left/Right to
+  change it, and Enter/Space to apply it. `a` toggles analog clocks; `1` and
+  `2` select 12- and 24-hour formats directly.
+- Press `o` to open the full planner view.
+- Press Escape to leave Manage/Settings first; press it again to close the
+  panel.
 - Click a day in the calendar strip to plan on that home-timezone date.
 - Use the calendar arrows to move one week at a time, or click `Today` to return.
 - Click `Manage` to rename, reorder, remove, or change the home location.
