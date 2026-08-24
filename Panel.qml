@@ -1648,31 +1648,51 @@ Panel {
           }
         }
 
-        Rectangle {
-          id: plannerTooltip
+        Item {
+          id: plannerStatusRow
           visible: root.plannerOffsetMinutes !== 0
-            && root.plannerTooltipText !== ""
-          x: Math.max(0, Math.min(parent.width - width,
-            plannerDock.thumbCenterX - width / 2))
-          width: plannerTooltipText.implicitWidth + Style.space(14)
-          height: Math.max(plannerTooltipText.implicitHeight + Style.space(8),
-            shortcutText.implicitHeight)
-          radius: Style.space(2)
-          color: Style.normalFillFor(
-            root.contentForeground, Color.accent, Color.urgent)
-          border.width: Style.spacing.hairline
-          border.color: Style.normalBorderFor(
-            root.contentForeground, Color.accent, Color.urgent)
+          width: parent.width
+          height: Math.max(shortcutText.implicitHeight,
+            plannerTooltip.height, resetNowHint.implicitHeight)
+          readonly property real tooltipRightEdge: resetNowHint.x - Style.space(8)
+
+          Rectangle {
+            id: plannerTooltip
+            visible: root.plannerTooltipText !== ""
+            x: Math.max(0, Math.min(
+              plannerStatusRow.tooltipRightEdge - width,
+              plannerDock.thumbCenterX - width / 2))
+            anchors.verticalCenter: parent.verticalCenter
+            width: plannerTooltipText.implicitWidth + Style.space(14)
+            height: plannerTooltipText.implicitHeight + Style.space(8)
+            radius: Style.space(2)
+            color: Style.normalFillFor(
+              root.contentForeground, Color.accent, Color.urgent)
+            border.width: Style.spacing.hairline
+            border.color: Style.normalBorderFor(
+              root.contentForeground, Color.accent, Color.urgent)
+
+            Text {
+              id: plannerTooltipText
+              anchors.centerIn: parent
+              text: root.plannerTooltipText + " · "
+                + Model.formatDuration(root.plannerOffsetMinutes, true)
+              color: root.contentForeground
+              font.family: root.contentFontFamily
+              font.pixelSize: Style.font.bodySmall
+              font.bold: true
+            }
+          }
 
           Text {
-            id: plannerTooltipText
-            anchors.centerIn: parent
-            text: root.plannerTooltipText + " · "
-              + Model.formatDuration(root.plannerOffsetMinutes, true) + " · T now"
-            color: root.contentForeground
+            id: resetNowHint
+            anchors.right: parent.right
+            anchors.rightMargin: Style.space(4)
+            anchors.bottom: parent.bottom
+            text: "T now"
+            color: Qt.darker(root.contentForeground, 1.75)
             font.family: root.contentFontFamily
             font.pixelSize: Style.font.bodySmall
-            font.bold: true
           }
         }
 

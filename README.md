@@ -114,7 +114,8 @@ locations the user has already configured.
 - Drag or scroll the fixed compact slider to move all clocks continuously in
   15-minute steps across a ±24-hour range. Its square thumb stays visible, and
   moving away from Now shows the selected home date, time, and offset below the
-  track in place of the shortcut guide, while retaining the `T now` reset hint.
+  track in place of the shortcut guide. A separate muted `T now` reset hint
+  remains in the bottom-right corner.
 - Press Left/Right for 15 minutes; hold Shift for one hour.
 - Press `T` or right-click the slider to return to the live current instant.
 - Press `[` / `]` to move one calendar day; hold Shift to move one week.
