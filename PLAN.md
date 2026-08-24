@@ -603,7 +603,9 @@ Suggested model:
       "id": "home",
       "name": "Wellington",
       "timezone": "Pacific/Auckland",
-      "isHome": true
+      "isHome": true,
+      "latitude": -41.2866,
+      "longitude": 174.7756
     },
     {
       "id": "london",
@@ -1049,7 +1051,7 @@ Implemented:
 - DST-correct horizontal 24-hour timeline
 - click/drag meeting-start selection with 15-minute snapping
 - adjustable meeting duration and `Copy meeting time`
-- local vector world map with IANA timezone markers
+- bundled Natural Earth world map with precise city markers
 - selected-time day/night terminator
 
 Acceptance criteria:
@@ -1097,7 +1099,7 @@ A polished `1.0` should add:
 - polished timezone search
 - smooth planner interaction
 - reliable DST handling
-- exact per-city map coordinates when a timezone covers multiple cities
+- saved coordinates for custom labels that do not identify a known city
 
 Example:
 
@@ -1127,10 +1129,11 @@ The expanded workspace now includes:
 - larger calendar navigation and copy/share controls
 
 The compact panel and expanded window share the same locations and one
-canonical planning timestamp. The MVP derives representative coordinates from
-the installed IANA timezone tables and uses a local vector map, so it requires
-no external map service. Exact city coordinates can later be stored separately
-from timezone IDs for renamed clocks such as teams or people.
+canonical planning timestamp. New search selections save coordinates from the
+installed IANA timezone tables, known existing city labels are migrated to
+their precise coordinates, and other saved clocks fall back to the timezone's
+representative point. The bundled Natural Earth geometry keeps the map local,
+so it requires no external map service.
 
 ## Find Best Meeting Time
 

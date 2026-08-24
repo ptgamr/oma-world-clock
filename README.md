@@ -30,9 +30,13 @@ A standalone world-clock and meeting-planner plugin for the Omarchy Quattro bar.
 
 [![v9 timezone-aware first-run defaults](screenshots/world-clock-panel-v9.png)](screenshots/world-clock-panel-v9.png)
 
-**v10 — expanded meeting planner (current)**
+**v10 — expanded meeting planner**
 
 [![v10 expanded planner with timeline and world map](screenshots/world-clock-full-v10.png)](screenshots/world-clock-full-v10.png)
+
+**v11 — real coastlines and precise city markers (current)**
+
+[![v11 expanded planner with real coastlines and precise city markers](screenshots/world-clock-full-v11.png)](screenshots/world-clock-full-v11.png)
 
 New UI captures increment the suffix (`v10`, `v11`, …) so earlier layouts remain available for comparison.
 
@@ -51,7 +55,7 @@ Version 0.1 includes:
 - a separate resizable planner window sharing the compact panel's clocks and selected instant
 - a DST-correct horizontal 24-hour timeline with a selectable meeting range
 - 15-minute meeting-duration controls and a `Copy meeting time` action
-- a local vector world map with timezone markers and selected-time day/night shading
+- a bundled Natural Earth world map with precise city markers and selected-time day/night shading
 - configuration persistence in this plugin's own `shell.json` bar entry
 
 ## Requirements
@@ -106,7 +110,7 @@ locations the user has already configured.
 - Click or drag across the 24-hour timeline to choose the meeting start.
 - Use `−` / `+` to change the meeting duration in 15-minute steps.
 - Click `Copy meeting time` to copy every location's local time range.
-- The world map follows the same selected instant and shades the night side locally.
+- The world map follows the same selected instant, plots saved city coordinates, and shades the night side locally.
 
 ## Validate
 
@@ -135,7 +139,7 @@ omarchy-shell shell setBarWidget io.github.ptgamr.world-clock _capturePreview fa
 ```
 
 A secure compositor lock can prevent the popup surface from mapping. The
-checked-in v10 screenshot was therefore rendered offscreen from the real
+checked-in v11 screenshot was therefore rendered offscreen from the real
 full-view QML components, current Omarchy theme values, and deterministic
 timezone-helper-shaped data.
 
@@ -154,26 +158,41 @@ Locations are written into this widget's own entry in `~/.config/omarchy/shell.j
 ```json
 {
   "id": "io.github.ptgamr.world-clock",
+  "configVersion": 1,
   "showAnalogClock": true,
   "hourFormat": "12",
   "locations": [
     {
-      "id": "auckland",
-      "name": "Auckland",
-      "timezone": "Pacific/Auckland",
-      "isHome": true
-    },
-    {
-      "id": "ho-chi-minh",
-      "name": "Ho Chi Minh",
+      "id": "hanoi",
+      "name": "Hanoi",
       "timezone": "Asia/Ho_Chi_Minh",
-      "isHome": false
+      "isHome": true,
+      "latitude": 21.0278,
+      "longitude": 105.8342
     },
     {
-      "id": "new-york",
-      "name": "New York",
-      "timezone": "America/New_York",
-      "isHome": false
+      "id": "berlin",
+      "name": "Berlin",
+      "timezone": "Europe/Berlin",
+      "isHome": false,
+      "latitude": 52.52,
+      "longitude": 13.405
+    },
+    {
+      "id": "pacific-time",
+      "name": "Pacific Time",
+      "timezone": "America/Los_Angeles",
+      "isHome": false,
+      "latitude": 34.0522,
+      "longitude": -118.2437
+    },
+    {
+      "id": "wellington",
+      "name": "Wellington",
+      "timezone": "Pacific/Auckland",
+      "isHome": false,
+      "latitude": -41.2866,
+      "longitude": 174.7756
     }
   ]
 }
