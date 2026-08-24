@@ -186,6 +186,12 @@ function analogMinuteAngle(minute) {
   return ((value % 60) + 60) % 60 * 6
 }
 
+function analogSecondAngle(second) {
+  var value = Number(second)
+  if (!isFinite(value)) value = 0
+  return ((value % 60) + 60) % 60 * 6
+}
+
 function analogHourAngle(hour, minute) {
   var hours = Number(hour)
   var minutes = Number(minute)
@@ -223,6 +229,7 @@ if (typeof module !== "undefined") {
     availability: availability,
     isDaytime: isDaytime,
     analogMinuteAngle: analogMinuteAngle,
+    analogSecondAngle: analogSecondAngle,
     analogHourAngle: analogHourAngle,
     metadataForRow: metadataForRow
   }

@@ -52,6 +52,7 @@ assert.equal(Model.isDaytime(7), true)
 assert.equal(Model.isDaytime(18), true)
 assert.equal(Model.isDaytime(19), false)
 assert.equal(Model.analogMinuteAngle(45), 270)
+assert.equal(Model.analogSecondAngle(37), 222)
 assert.equal(Model.analogHourAngle(3, 30), 105)
 
 console.log("Model tests passed")

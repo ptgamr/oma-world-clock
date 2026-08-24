@@ -7,9 +7,11 @@ Item {
 
   property int hour: 0
   property int minute: 0
+  property int second: 0
   property color foreground: Color.foreground
   property color background: Color.popups.background
   property color accent: Color.accent
+  property color secondHandColor: Color.urgent
   readonly property bool daytime: Model.isDaytime(hour)
   readonly property color dialForeground: daytime ? background : foreground
 
@@ -79,11 +81,25 @@ Item {
     }
 
     Rectangle {
+      id: secondHand
+      anchors.horizontalCenter: parent.horizontalCenter
+      y: parent.height / 2 - height
+      width: Style.spacing.hairline
+      height: Style.space(18)
+      color: root.secondHandColor
+      transform: Rotation {
+        origin.x: secondHand.width / 2
+        origin.y: secondHand.height
+        angle: Model.analogSecondAngle(root.second)
+      }
+    }
+
+    Rectangle {
       anchors.centerIn: parent
       width: Style.space(4)
       height: width
       radius: width / 2
-      color: root.accent
+      color: root.secondHandColor
     }
   }
 }

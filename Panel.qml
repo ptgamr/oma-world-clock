@@ -33,6 +33,9 @@ Panel {
   property int plannerOffsetMinutes: 0
   property bool followingNow: true
   readonly property double planningTimestamp: dayAnchorTimestamp + plannerOffsetMinutes * 60000
+  readonly property int displaySecond: followingNow
+    ? secondsClock.seconds
+    : new Date(planningTimestamp).getUTCSeconds()
 
   property bool renderQueued: false
   property double activeRenderTimestamp: 0
@@ -318,6 +321,11 @@ Panel {
       root.plannerOffsetMinutes = 0
       root.dayAnchorTimestamp = date.getTime()
     }
+  }
+
+  SystemClock {
+    id: secondsClock
+    precision: SystemClock.Seconds
   }
 
   Process {
@@ -742,14 +750,17 @@ Panel {
                       anchors.verticalCenter: parent.verticalCenter
                       hour: clockCard.rendered ? clockCard.rendered.hour : 0
                       minute: clockCard.rendered ? clockCard.rendered.minute : 0
+                      second: root.displaySecond
                       foreground: root.contentForeground
                       background: Color.popups.background
                       accent: Color.accent
+                      secondHandColor: Color.urgent
                       opacity: clockCard.rendered ? 1 : 0.4
                     }
 
                     Column {
                       id: timeBlock
+                      width: Style.space(88)
                       anchors.right: parent.right
                       anchors.verticalCenter: parent.verticalCenter
                       spacing: Style.space(1)
