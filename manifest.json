@@ -5,7 +5,7 @@
   "version": "0.1.0",
   "author": "Anh Trinh",
   "license": "MIT",
-  "description": "DST-correct world clocks and a meeting-time planner for the Omarchy bar.",
+  "description": "A keyboard-friendly, DST-correct world clock for the Omarchy bar.",
   "kinds": [
     "bar-widget",
     "panel",
@@ -18,7 +18,7 @@
   },
   "barWidget": {
     "displayName": "World Clock",
-    "description": "Compare working hours and plan meetings across time zones.",
+    "description": "Track local times across cities from the Omarchy bar.",
     "category": "Time",
     "allowMultiple": false,
     "defaultSection": "right"
