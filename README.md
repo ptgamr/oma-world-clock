@@ -4,11 +4,13 @@ A standalone world-clock and meeting-planner plugin for the Omarchy Quattro bar.
 
 ## UI evolution
 
-| v1 — clocks first | v2 — calendar first | v3 — compact (current) |
-| --- | --- | --- |
-| [![v1 clocks-first panel](screenshots/world-clock-panel-v1.png)](screenshots/world-clock-panel-v1.png) | [![v2 calendar-first panel](screenshots/world-clock-panel-v2.png)](screenshots/world-clock-panel-v2.png) | [![v3 compact panel](screenshots/world-clock-panel-v3.png)](screenshots/world-clock-panel-v3.png) |
+| v1 — clocks first | v2 — calendar first |
+| --- | --- |
+| [![v1 clocks-first panel](screenshots/world-clock-panel-v1.png)](screenshots/world-clock-panel-v1.png) | [![v2 calendar-first panel](screenshots/world-clock-panel-v2.png)](screenshots/world-clock-panel-v2.png) |
+| v3 — compact | v4 — analog day/night (current) |
+| [![v3 compact panel](screenshots/world-clock-panel-v3.png)](screenshots/world-clock-panel-v3.png) | [![v4 analog day-night panel](screenshots/world-clock-panel-v4.png)](screenshots/world-clock-panel-v4.png) |
 
-New UI captures increment the suffix (`v4`, `v5`, …) so earlier layouts remain available for comparison.
+New UI captures increment the suffix (`v5`, `v6`, …) so earlier layouts remain available for comparison.
 
 Version 0.1 includes:
 
@@ -17,6 +19,7 @@ Version 0.1 includes:
 - a ±12 hour planner with 15-minute snapping
 - local-calendar date navigation that remains correct across DST changes
 - working-hours, edge-hours, and off-hours indicators
+- analog faces with light daytime and dark nighttime dial backgrounds
 - add, remove, rename, reorder, and set-home controls
 - timezone search backed by the installed system timezone database
 - configuration persistence in this plugin's own `shell.json` bar entry
