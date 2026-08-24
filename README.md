@@ -13,7 +13,6 @@ It works alongside the built-in `omarchy.clock`; it does not replace it.
 - Keep track of multiple clocks around the world
 - Choose between analog and digital clocks
 - Plan across dates and times with the calendar and time slider
-- Start quickly with smart clock suggestions based on your location
 - Add, rename, remove, reorder, and choose your Home clock
 - Use the entire panel with the keyboard or mouse
 - Choose between 12- and 24-hour time
