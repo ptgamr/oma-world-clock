@@ -14,11 +14,15 @@ A standalone world-clock and meeting-planner plugin for the Omarchy Quattro bar.
 
 [![v5 aligned analog clocks with red seconds hand](screenshots/world-clock-panel-v5.png)](screenshots/world-clock-panel-v5.png)
 
-**v6 — weekday and timezone columns (current)**
+**v6 — weekday and timezone columns**
 
 [![v6 weekday and timezone columns](screenshots/world-clock-panel-v6.png)](screenshots/world-clock-panel-v6.png)
 
-New UI captures increment the suffix (`v7`, `v8`, …) so earlier layouts remain available for comparison.
+**v7 — simplified rows and appearance settings (current)**
+
+[![v7 simplified rows and appearance settings](screenshots/world-clock-panel-v7.png)](screenshots/world-clock-panel-v7.png)
+
+New UI captures increment the suffix (`v8`, `v9`, …) so earlier layouts remain available for comparison.
 
 Version 0.1 includes:
 
@@ -26,9 +30,9 @@ Version 0.1 includes:
 - DST-correct conversion for the selected instant
 - a ±12 hour planner with 15-minute snapping
 - local-calendar date navigation that remains correct across DST changes
-- working-hours, edge-hours, and off-hours indicators
 - aligned analog faces with light/day, dark/night dials and a live red seconds hand
 - full local weekdays and aligned timezone details beneath each digital clock
+- appearance settings for analog visibility and 12/24-hour time
 - add, remove, rename, reorder, and set-home controls
 - timezone search backed by the installed system timezone database
 - configuration persistence in this plugin's own `shell.json` bar entry
@@ -68,10 +72,9 @@ the default home location.
 - Click a day in the calendar strip to plan on that home-timezone date.
 - Use the calendar arrows to move one week at a time, or click `Today` to return.
 - Click `Manage` to rename, reorder, remove, or change the home location.
+- Click `Settings` to show or hide analog clocks and choose 12- or 24-hour time.
 - To change the home location later, click `Manage`, click `Home` on its row, then click `Done`.
 - Click `Add location` and search by a city such as `London` or an IANA ID such as `Europe/London`.
-
-Green/theme-accent `WORK` means Monday-Friday 09:00-17:00, `EDGE` means 07:00-09:00 or 17:00-20:00, and `OFF` covers nights and weekends.
 
 ## Validate
 
@@ -110,6 +113,8 @@ Locations are written into this widget's own entry in `~/.config/omarchy/shell.j
 ```json
 {
   "id": "io.github.ptgamr.world-clock",
+  "showAnalogClock": true,
+  "hourFormat": "12",
   "locations": [
     {
       "id": "hanoi",

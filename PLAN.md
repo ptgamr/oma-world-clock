@@ -1002,6 +1002,11 @@ Selecting a future date recalculates timezone offsets using DST rules for that e
 
 ## Phase 7 — Working Hours
 
+The compact row labels are intentionally hidden for now because persistent
+`WORK` / `EDGE` / `OFF` text competes with the clock information. Keep the
+availability model for the future expanded timeline, where the full-day bands
+provide useful context without cluttering every compact row.
+
 Add:
 
 - default hours
