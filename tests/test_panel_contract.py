@@ -31,6 +31,7 @@ class PanelContractTests(unittest.TestCase):
         reset_body = qml_function_body(PANEL_SOURCE, "resetLocationHover")
         self.assertIn("root.selectedIndex = -1", reset_body)
         self.assertIn("root.cursorActive = false", reset_body)
+        self.assertIn("root.selectionRevealEnabled = false", reset_body)
         self.assertIn("root.locationHoverSuppressed = true", reset_body)
         self.assertIn("Number.NaN", reset_body)
 
@@ -40,6 +41,7 @@ class PanelContractTests(unittest.TestCase):
 
     def test_pointer_selection_does_not_reveal_or_scroll_rows(self):
         selection_body = qml_function_body(PANEL_SOURCE, "selectLocation")
+        self.assertIn("root.selectionRevealEnabled = reveal !== false", selection_body)
         self.assertIn("if (reveal !== false) root.revealSelection()", selection_body)
 
         for function_name in (
@@ -50,6 +52,19 @@ class PanelContractTests(unittest.TestCase):
         ):
             body = qml_function_body(PANEL_SOURCE, function_name)
             self.assertIn("root.selectLocation(index, false)", body)
+
+    def test_location_updates_only_reveal_keyboard_selection(self):
+        self.assertIn(
+            "if (root.cursorActive && root.selectionRevealEnabled) "
+            "root.revealSelection()",
+            PANEL_SOURCE,
+        )
+
+        movement_body = qml_function_body(PANEL_SOURCE, "moveSelection")
+        self.assertIn("root.selectionRevealEnabled = true", movement_body)
+
+        action_body = qml_function_body(PANEL_SOURCE, "ensureSelectedLocation")
+        self.assertIn("root.selectionRevealEnabled = true", action_body)
 
 
 if __name__ == "__main__":

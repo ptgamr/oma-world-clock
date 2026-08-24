@@ -71,6 +71,7 @@ Panel {
   readonly property bool showingClockContent: !addingLocation && !showingSettings
   property int selectedIndex: -1
   property bool cursorActive: false
+  property bool selectionRevealEnabled: false
   property int settingsIndex: 0
   property bool settingsCursorActive: false
   property bool reorderAnimating: false
@@ -105,6 +106,7 @@ Panel {
   function resetLocationHover() {
     root.selectedIndex = -1
     root.cursorActive = false
+    root.selectionRevealEnabled = false
     root.locationHoverSuppressed = true
     root.lastLocationPointer = Qt.point(Number.NaN, Number.NaN)
   }
@@ -198,6 +200,7 @@ Panel {
   function selectLocation(index, reveal) {
     root.selectedIndex = Model.clampedIndex(index, root.locations.length)
     root.cursorActive = root.selectedIndex >= 0
+    root.selectionRevealEnabled = reveal !== false
     if (reveal !== false) root.revealSelection()
   }
 
@@ -257,6 +260,7 @@ Panel {
     root.selectedIndex = Model.movedSelection(
       root.selectedIndex, root.locations.length, delta, root.cursorActive)
     root.cursorActive = true
+    root.selectionRevealEnabled = true
     root.revealSelection()
   }
 
@@ -277,6 +281,8 @@ Panel {
     if (root.locations.length === 0) return null
     if (!root.cursorActive)
       root.selectLocation(root.selectedIndex >= 0 ? root.selectedIndex : 0)
+    else
+      root.selectionRevealEnabled = true
     return root.selectedLocation()
   }
 
@@ -491,7 +497,7 @@ Panel {
 
   onLocationsChanged: {
     root.selectedIndex = Model.clampedIndex(root.selectedIndex, root.locations.length)
-    if (root.cursorActive) root.revealSelection()
+    if (root.cursorActive && root.selectionRevealEnabled) root.revealSelection()
   }
 
   function startRename(id, name) {
