@@ -116,8 +116,8 @@ locations the user has already configured.
 - Press `T` or click `NOW` to return to the live current instant.
 - Press `[` / `]` to move one calendar day; hold Shift to move one week.
 - Press `j`/`k` (or Down/Up) to select a clock. The first key press selects
-  the first/last row, and the panel scrolls to keep it visible. Page Up/Page
-  Down jump by a visible page; Home/End select the first/last clock.
+  the first/last row, and the panel scrolls to keep it visible. Home/End select
+  the first/last clock.
 - Press `Shift+j` / `Shift+k` to move the selected clock down/up, or drag any
   clock row to reorder it.
 - Press `h` to make the selected clock the Home location.
@@ -132,7 +132,6 @@ locations the user has already configured.
   `2` select 12- and 24-hour formats directly.
 - Settings temporarily replaces the clocks and timeline controls with the
   appearance controls. Closing Settings restores the compact clock list.
-- Press `o` to open the full planner view.
 - The shortcut guide stays pinned below the scrollable content, including with
   long lists of clocks.
 - Press Escape to leave Settings first; press it again to close the panel.
@@ -141,7 +140,6 @@ locations the user has already configured.
 - Click `Settings` to show or hide analog clocks and choose 12- or 24-hour time.
 - To change the home location later, select its clock and press `h`.
 - Press `a` and search by a city such as `London` or an IANA ID such as `Europe/London`.
-- Click `Open full view` to open the resizable planner window.
 - Click or drag across the 24-hour timeline to choose the meeting start.
 - Use `−` / `+` to change the meeting duration in 15-minute steps.
 - Click `Copy meeting time` to copy every location's local time range.

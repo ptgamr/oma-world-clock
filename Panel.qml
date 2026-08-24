@@ -241,15 +241,6 @@ Panel {
     root.revealSelection()
   }
 
-  function visibleClockPageSize() {
-    var rowHeight = root.clockRowStep(root.selectedIndex >= 0 ? root.selectedIndex : 0)
-    return Math.max(1, Math.floor(scroll.height / Math.max(1, rowHeight)) - 1)
-  }
-
-  function moveSelectionPage(direction) {
-    root.moveSelection(direction * root.visibleClockPageSize())
-  }
-
   function selectLocationBoundary(last) {
     if (root.editorOpen || root.reorderBusy || root.locations.length === 0) return
     root.suppressLocationHover()
@@ -329,7 +320,7 @@ Panel {
       return "Type a new name · Enter save · Esc cancel"
     if (root.showingSettings)
       return "j/k · ←/→ change · Enter apply · a analog · 1/2 format · s done"
-    return "j/k select · PgUp/PgDn jump · J/K move · A add · R rename · D delete · H home · S settings · O full"
+    return "j/k select · J/K move · A add · R rename · D delete · H home · S settings"
   }
 
   function clockRowStep(index) {
@@ -725,12 +716,6 @@ Panel {
           if (root.showingSettings) root.moveSettingsSelection(-1)
           else root.moveSelection(-1)
           event.accepted = true
-        } else if (!root.showingSettings && event.key === Qt.Key_PageDown) {
-          root.moveSelectionPage(1)
-          event.accepted = true
-        } else if (!root.showingSettings && event.key === Qt.Key_PageUp) {
-          root.moveSelectionPage(-1)
-          event.accepted = true
         } else if (!root.showingSettings && event.key === Qt.Key_Home) {
           root.selectLocationBoundary(false)
           event.accepted = true
@@ -773,9 +758,6 @@ Panel {
         } else if (root.showingSettings && event.text === "2") {
           root.selectSetting(1)
           root.setHourFormat("24")
-          event.accepted = true
-        } else if (event.text === "o" || event.text === "O") {
-          root.openFullView()
           event.accepted = true
         } else if (event.text === "[" || event.text === "{") {
           root.shiftPlanningDate(event.text === "{" ? -7 : -1)
@@ -978,16 +960,6 @@ Panel {
               anchors.right: parent.right
               anchors.verticalCenter: parent.verticalCenter
               spacing: Style.space(4)
-
-              Button {
-                text: "Open full view"
-                foreground: root.contentForeground
-                fontFamily: root.contentFontFamily
-                fontSize: Style.font.bodySmall
-                horizontalPadding: Style.space(9)
-                verticalPadding: Style.space(5)
-                onClicked: root.openFullView()
-              }
 
               Button {
                 text: root.showingSettings ? "Done" : "Settings"

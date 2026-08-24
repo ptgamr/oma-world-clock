@@ -656,7 +656,6 @@ R          Rename selected location
 D/Delete   Remove selected location
 H          Choose selected location as Home
 Shift J/K  Move selected location down/up
-PgUp/PgDn  Move the selection by one visible page
 Home/End   Select the first/last location
 ```
 
@@ -1056,15 +1055,17 @@ Improve:
 - panel sizing
 - theme integration
 
-## Phase 9 — Expanded Planner Window (implemented)
+## Phase 9 — Expanded Planner Window (implemented, currently hidden)
 
-The compact panel now exposes `Open full view`, which opens a separate resizable
-Omarchy `FloatingWindow`. Both surfaces use one session service, so location
-changes and the canonical planning instant stay synchronized.
+The separate resizable Omarchy `FloatingWindow` remains implemented, but the
+compact release does not currently expose an action or shortcut for it. Its
+code is retained for a later fuller release. Both surfaces use one session
+service, so location changes and the canonical planning instant stay
+synchronized when it is re-enabled.
 
 Implemented:
 
-- compact-panel `Open full view` action
+- compact-panel action retained in code but hidden from the release UI
 - shared clocks, preferences, and selected instant
 - DST-correct horizontal 24-hour timeline
 - click/drag meeting-start selection with 15-minute snapping
