@@ -14,6 +14,10 @@ Panel {
   property var anchorItem: null
   property var hostWidget: null
   property bool settingsReady: false
+  readonly property var service: root.bar && root.bar.shell
+    && typeof root.bar.shell.serviceFor === "function"
+    ? root.bar.shell.serviceFor(root.moduleName)
+    : null
   readonly property var barIdentity: hostWidget || root
 
   readonly property color contentForeground: bar ? bar.foreground : Color.foreground
@@ -21,32 +25,38 @@ Panel {
   readonly property string helperPath: decodeURIComponent(
     String(Qt.resolvedUrl("helpers/timezone.py")).replace(/^file:\/\//, ""))
 
-  readonly property var configuredLocations: setting("locations", null)
-  readonly property bool hasConfiguredLocations: Array.isArray(configuredLocations)
-    && configuredLocations.length > 0
-  property var detectedDefaultLocations: Model.defaultLocations()
-  readonly property var locations: Model.normalizeLocations(
-    hasConfiguredLocations ? configuredLocations : detectedDefaultLocations)
+  readonly property var locations: service
+    ? service.locations
+    : Model.normalizeLocations(setting("locations", Model.defaultLocations()))
   readonly property var homeLocation: Model.homeLocation(locations)
-  readonly property bool showTimezoneAbbreviation: setting("showTimezoneAbbreviation", true) !== false
-  readonly property bool showRelativeOffset: setting("showRelativeOffset", true) !== false
-  readonly property bool showAnalogClock: setting("showAnalogClock", true) !== false
-  readonly property string hourFormat: setting("hourFormat", "12") === "24" ? "24" : "12"
+  readonly property bool showTimezoneAbbreviation: service
+    ? service.showTimezoneAbbreviation
+    : setting("showTimezoneAbbreviation", true) !== false
+  readonly property bool showRelativeOffset: service
+    ? service.showRelativeOffset
+    : setting("showRelativeOffset", true) !== false
+  readonly property bool showAnalogClock: service
+    ? service.showAnalogClock
+    : setting("showAnalogClock", true) !== false
+  readonly property string hourFormat: service
+    ? service.hourFormat
+    : (setting("hourFormat", "12") === "24" ? "24" : "12")
 
-  property var renderedRows: []
-  property var calendarData: ({ monthLabel: "Loading…", weekNumber: 0, days: [] })
-  property string serviceError: ""
-  property double dayAnchorTimestamp: Date.now()
-  property int plannerOffsetMinutes: 0
-  property bool followingNow: true
-  readonly property double planningTimestamp: dayAnchorTimestamp + plannerOffsetMinutes * 60000
+  readonly property var renderedRows: service ? service.renderedRows : []
+  readonly property var calendarData: service
+    ? service.calendarData
+    : ({ monthLabel: "Loading…", weekNumber: 0, days: [] })
+  property string localError: ""
+  readonly property string serviceError: localError !== ""
+    ? localError
+    : (service ? service.errorMessage : "")
+  readonly property int plannerOffsetMinutes: service ? service.plannerOffsetMinutes : 0
+  readonly property bool followingNow: service ? service.followingNow : true
+  readonly property double planningTimestamp: service ? service.planningTimestamp : Date.now()
+  readonly property bool dateShiftBusy: service ? service.dateShiftBusy : false
   readonly property int displaySecond: followingNow
     ? secondsClock.seconds
     : new Date(planningTimestamp).getUTCSeconds()
-
-  property bool renderQueued: false
-  property double activeRenderTimestamp: 0
-  property int dateShiftOffset: 0
 
   property bool managingLocations: false
   property bool showingSettings: false
@@ -99,66 +109,27 @@ Panel {
   }
 
   function resetToNow() {
-    root.followingNow = true
-    root.plannerOffsetMinutes = 0
-    root.dayAnchorTimestamp = Date.now()
-    root.requestRender()
+    if (root.service) root.service.resetToNow()
   }
 
   function setPlannerOffset(minutes) {
-    root.followingNow = false
-    root.plannerOffsetMinutes = Model.clampPlannerMinutes(minutes)
+    if (root.service) root.service.setPlannerOffset(minutes)
   }
 
   function stepPlanner(direction, largeStep) {
-    var amount = largeStep ? 60 : 15
-    root.setPlannerOffset(root.plannerOffsetMinutes + direction * amount)
+    if (root.service) root.service.stepPlanner(direction, largeStep)
   }
 
   function shiftPlanningDate(days) {
-    if (dateShiftProcess.running || !root.homeLocation) return
-    root.followingNow = false
-    root.dateShiftOffset = root.plannerOffsetMinutes
-    dateShiftProcess.command = [
-      "python3",
-      root.helperPath,
-      "shift-date",
-      String(Math.round(root.planningTimestamp)),
-      root.homeLocation.timezone,
-      String(days)
-    ]
-    dateShiftProcess.running = true
+    if (root.service) root.service.shiftPlanningDate(days)
   }
 
   function requestRender() {
-    root.renderQueued = true
-    if (!renderProcess.running) Qt.callLater(root.startRender)
-  }
-
-  function detectFirstRunTimezone() {
-    if (!root.settingsReady || root.hasConfiguredLocations || defaultTimezoneProcess.running) return
-    defaultTimezoneProcess.command = ["python3", root.helperPath, "detect-timezone"]
-    defaultTimezoneProcess.running = true
-  }
-
-  function startRender() {
-    if (renderProcess.running || !root.renderQueued) return
-    root.renderQueued = false
-    root.activeRenderTimestamp = Math.round(root.planningTimestamp)
-    renderProcess.command = [
-      "python3",
-      root.helperPath,
-      "render",
-      String(root.activeRenderTimestamp),
-      JSON.stringify(root.locations)
-    ]
-    renderProcess.running = true
+    if (root.service) root.service.requestRender()
   }
 
   function renderedRow(id) {
-    for (var i = 0; i < root.renderedRows.length; i++)
-      if (root.renderedRows[i].id === id) return root.renderedRows[i]
-    return null
+    return root.service ? root.service.renderedRow(id) : null
   }
 
   function availabilityFor(row) {
@@ -175,6 +146,10 @@ Panel {
   }
 
   function persistLocations(nextLocations) {
+    if (root.service) {
+      root.service.persistLocations(nextLocations)
+      return
+    }
     var entry = { id: root.moduleName }
     for (var existing in root.settings)
       if (existing !== "id") entry[existing] = root.settings[existing]
@@ -188,6 +163,10 @@ Panel {
   }
 
   function persistSetting(key, value) {
+    if (root.service) {
+      root.service.persistSetting(key, value)
+      return
+    }
     var entry = { id: root.moduleName }
     for (var existing in root.settings)
       if (existing !== "id") entry[existing] = root.settings[existing]
@@ -295,7 +274,7 @@ Panel {
       defaultName = selected.name
     }
     if (timezone === "") {
-      root.serviceError = "Choose a timezone from the search results."
+      root.localError = "Choose a timezone from the search results."
       return
     }
 
@@ -303,7 +282,7 @@ Panel {
     root.persistLocations(Model.addLocation(root.locations, name, timezone))
     root.addingLocation = false
     root.timezoneSuggestions = []
-    root.serviceError = ""
+    root.localError = ""
     Qt.callLater(function() { keyCatcher.forceActiveFocus() })
   }
 
@@ -322,121 +301,21 @@ Panel {
     keyCatcher.grabToImage(function(result) {
       if (!result || !result.saveToFile(root.previewPath)) {
         root.previewStatus = "save failed"
-        root.serviceError = "Could not save the panel preview."
+        root.localError = "Could not save the panel preview."
       } else {
         root.previewStatus = "saved " + root.previewPath
       }
     }, Qt.size(previewWidth, previewHeight))
   }
 
-  onPlanningTimestampChanged: requestRender()
-  onLocationsChanged: requestRender()
   onPreviewCaptureRequestedChanged: {
     if (root.previewCaptureRequested) root.capturePreview()
-  }
-  onSettingsReadyChanged: if (root.settingsReady) root.detectFirstRunTimezone()
-
-  Component.onCompleted: {
-    root.dayAnchorTimestamp = Date.now()
-    if (root.settingsReady) root.detectFirstRunTimezone()
-    root.requestRender()
-  }
-
-  SystemClock {
-    id: clock
-    precision: SystemClock.Minutes
-    onDateChanged: {
-      if (!root.followingNow) return
-      root.plannerOffsetMinutes = 0
-      root.dayAnchorTimestamp = date.getTime()
-    }
   }
 
   SystemClock {
     id: secondsClock
     enabled: root.opened && root.showAnalogClock
     precision: SystemClock.Seconds
-  }
-
-  Process {
-    id: defaultTimezoneProcess
-    stdout: StdioCollector {
-      waitForEnd: true
-      onStreamFinished: {
-        var raw = String(text || "").trim()
-        if (!root.settingsReady || root.hasConfiguredLocations || raw === "") return
-        try {
-          var result = JSON.parse(raw)
-          if (!result.timezone) return
-          root.detectedDefaultLocations = Model.defaultLocations(result.timezone)
-          root.persistLocations(root.detectedDefaultLocations)
-        } catch (error) {
-          root.serviceError = "Could not detect the local timezone."
-        }
-      }
-    }
-    onExited: function(exitCode) {
-      if (exitCode !== 0 && root.settingsReady && !root.hasConfiguredLocations)
-        root.serviceError = "Could not detect the local timezone."
-    }
-  }
-
-  Process {
-    id: renderProcess
-    stdout: StdioCollector {
-      waitForEnd: true
-      onStreamFinished: {
-        var raw = String(text || "").trim()
-        if (raw === "") return
-        try {
-          var result = JSON.parse(raw)
-          if (result.error) {
-            root.serviceError = result.error
-            return
-          }
-          if (Number(result.timestampMs) !== root.activeRenderTimestamp) return
-          if (root.activeRenderTimestamp !== Math.round(root.planningTimestamp)) return
-          root.renderedRows = result.rows || []
-          root.calendarData = result.calendar || { monthLabel: "", weekNumber: 0, days: [] }
-          root.serviceError = ""
-        } catch (error) {
-          root.serviceError = "Timezone conversion returned invalid data."
-        }
-      }
-    }
-    onExited: function(exitCode) {
-      if (exitCode !== 0 && root.serviceError === "")
-        root.serviceError = "Timezone conversion failed. Check Python and tzdata."
-      if (root.renderQueued) Qt.callLater(root.startRender)
-    }
-  }
-
-  Process {
-    id: dateShiftProcess
-    stdout: StdioCollector {
-      waitForEnd: true
-      onStreamFinished: {
-        var raw = String(text || "").trim()
-        if (raw === "") return
-        try {
-          var result = JSON.parse(raw)
-          if (result.error) {
-            root.serviceError = result.error
-            return
-          }
-          root.dayAnchorTimestamp = Number(result.timestampMs) - root.dateShiftOffset * 60000
-          root.serviceError = result.normalized
-            ? "That local time falls in a DST gap, so it was moved forward."
-            : ""
-        } catch (error) {
-          root.serviceError = "Could not change the planning date."
-        }
-      }
-    }
-    onExited: function(exitCode) {
-      if (exitCode !== 0 && root.serviceError === "")
-        root.serviceError = "Could not change the planning date."
-    }
   }
 
   Process {
@@ -549,7 +428,7 @@ Panel {
 
               Button {
                 text: "‹"
-                enabled: !dateShiftProcess.running
+                enabled: !root.dateShiftBusy
                 opacity: enabled ? 1 : 0.35
                 foreground: root.contentForeground
                 fontFamily: root.contentFontFamily
@@ -572,7 +451,7 @@ Panel {
 
               Button {
                 text: "›"
-                enabled: !dateShiftProcess.running
+                enabled: !root.dateShiftBusy
                 opacity: enabled ? 1 : 0.35
                 foreground: root.contentForeground
                 fontFamily: root.contentFontFamily
@@ -657,7 +536,7 @@ Panel {
 
                 MouseArea {
                   anchors.fill: parent
-                  enabled: !dateShiftProcess.running
+                  enabled: !root.dateShiftBusy
                   hoverEnabled: true
                   cursorShape: Qt.PointingHandCursor
                   onClicked: {

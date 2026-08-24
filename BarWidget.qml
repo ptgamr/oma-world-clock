@@ -2,7 +2,6 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import qs.Ui
-import "Model.js" as Model
 
 // A deliberately compact companion to omarchy.clock. The count communicates
 // that this opens a group of clocks without duplicating the local time label.
@@ -14,7 +13,9 @@ BarWidget {
   // authoritative after the bar host has injected the shell.json entry.
   property bool hostSettingsReady: false
 
-  readonly property int locationCount: Model.normalizeLocations(setting("locations", Model.defaultLocations())).length
+  readonly property var configuredLocations: setting("locations", null)
+  readonly property int locationCount: Array.isArray(configuredLocations)
+    && configuredLocations.length > 0 ? configuredLocations.length : 3
   readonly property bool opened: panelLoader.item ? panelLoader.item.opened === true : false
   readonly property bool popoutSwitchClosing: panelLoader.item
     ? panelLoader.item.popoutSwitchClosing === true

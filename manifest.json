@@ -7,10 +7,12 @@
   "license": "MIT",
   "description": "DST-correct world clocks and a meeting-time planner for the Omarchy bar.",
   "kinds": [
-    "bar-widget"
+    "bar-widget",
+    "service"
   ],
   "entryPoints": {
-    "barWidget": "BarWidget.qml"
+    "barWidget": "BarWidget.qml",
+    "service": "components/WorldClockService.qml"
   },
   "barWidget": {
     "displayName": "World Clock",
