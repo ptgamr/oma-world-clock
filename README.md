@@ -18,11 +18,15 @@ A standalone world-clock and meeting-planner plugin for the Omarchy Quattro bar.
 
 [![v6 weekday and timezone columns](screenshots/world-clock-panel-v6.png)](screenshots/world-clock-panel-v6.png)
 
-**v7 — simplified rows and appearance settings (current)**
+**v7 — simplified rows and appearance settings**
 
 [![v7 simplified rows and appearance settings](screenshots/world-clock-panel-v7.png)](screenshots/world-clock-panel-v7.png)
 
-New UI captures increment the suffix (`v8`, `v9`, …) so earlier layouts remain available for comparison.
+**v8 — square appearance switch (current)**
+
+[![v8 square appearance switch](screenshots/world-clock-panel-v8.png)](screenshots/world-clock-panel-v8.png)
+
+New UI captures increment the suffix (`v9`, `v10`, …) so earlier layouts remain available for comparison.
 
 Version 0.1 includes:
 
