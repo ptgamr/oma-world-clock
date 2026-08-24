@@ -25,6 +25,8 @@ Panel {
   readonly property var homeLocation: Model.homeLocation(locations)
   readonly property bool showTimezoneAbbreviation: setting("showTimezoneAbbreviation", true) !== false
   readonly property bool showRelativeOffset: setting("showRelativeOffset", true) !== false
+  readonly property bool showAnalogClock: setting("showAnalogClock", true) !== false
+  readonly property string hourFormat: setting("hourFormat", "12") === "24" ? "24" : "12"
 
   property var renderedRows: []
   property var calendarData: ({ monthLabel: "Loading…", weekNumber: 0, days: [] })
@@ -42,6 +44,7 @@ Panel {
   property int dateShiftOffset: 0
 
   property bool managingLocations: false
+  property bool showingSettings: false
   property bool addingLocation: false
   property string renamingId: ""
   readonly property bool editorOpen: addingLocation || renamingId !== ""
@@ -70,6 +73,7 @@ Panel {
   function close() {
     root.setCenterHoverRevealSuppressed(false)
     root.cancelEditors()
+    root.showingSettings = false
     root.controller.hide()
   }
 
@@ -170,6 +174,18 @@ Panel {
     if (root.bar && root.bar.shell && typeof root.bar.shell.updateEntryInline === "function")
       root.bar.shell.updateEntryInline(root.moduleName, entry)
     root.requestRender()
+  }
+
+  function persistSetting(key, value) {
+    var entry = { id: root.moduleName }
+    for (var existing in root.settings)
+      if (existing !== "id") entry[existing] = root.settings[existing]
+    entry[key] = value
+
+    root.settings = entry
+    if (root.hostWidget && "settings" in root.hostWidget) root.hostWidget.settings = entry
+    if (root.bar && root.bar.shell && typeof root.bar.shell.updateEntryInline === "function")
+      root.bar.shell.updateEntryInline(root.moduleName, entry)
   }
 
   function removeLocation(id) {
@@ -325,6 +341,7 @@ Panel {
 
   SystemClock {
     id: secondsClock
+    enabled: root.opened && root.showAnalogClock
     precision: SystemClock.Seconds
   }
 
@@ -625,7 +642,7 @@ Panel {
 
           Item {
             width: parent.width
-            height: Math.max(worldClockTitle.implicitHeight, manageButton.implicitHeight)
+            height: Math.max(worldClockTitle.implicitHeight, headerActions.implicitHeight)
 
             Text {
               id: worldClockTitle
@@ -639,19 +656,135 @@ Panel {
               font.letterSpacing: 1
             }
 
-            Button {
-              id: manageButton
+            Row {
+              id: headerActions
               anchors.right: parent.right
               anchors.verticalCenter: parent.verticalCenter
-              text: root.managingLocations ? "Done" : "Manage"
-              foreground: root.contentForeground
-              fontFamily: root.contentFontFamily
-              fontSize: Style.font.bodySmall
-              horizontalPadding: Style.space(9)
-              verticalPadding: Style.space(5)
-              onClicked: {
-                root.cancelEditors()
-                root.managingLocations = !root.managingLocations
+              spacing: Style.space(4)
+
+              Button {
+                text: root.showingSettings ? "Done" : "Settings"
+                selected: root.showingSettings
+                foreground: root.contentForeground
+                fontFamily: root.contentFontFamily
+                fontSize: Style.font.bodySmall
+                horizontalPadding: Style.space(9)
+                verticalPadding: Style.space(5)
+                onClicked: {
+                  root.cancelEditors()
+                  root.managingLocations = false
+                  root.showingSettings = !root.showingSettings
+                }
+              }
+
+              Button {
+                id: manageButton
+                text: root.managingLocations ? "Done" : "Manage"
+                selected: root.managingLocations
+                foreground: root.contentForeground
+                fontFamily: root.contentFontFamily
+                fontSize: Style.font.bodySmall
+                horizontalPadding: Style.space(9)
+                verticalPadding: Style.space(5)
+                onClicked: {
+                  root.cancelEditors()
+                  root.showingSettings = false
+                  root.managingLocations = !root.managingLocations
+                }
+              }
+            }
+          }
+
+          Rectangle {
+            visible: root.showingSettings
+            width: parent.width
+            implicitHeight: appearanceSettings.implicitHeight + Style.space(18)
+            radius: Style.cornerRadius
+            color: Style.normalFillFor(root.contentForeground, Color.accent, Color.urgent)
+
+            Column {
+              id: appearanceSettings
+              x: Style.space(10)
+              y: Style.space(9)
+              width: parent.width - Style.space(20)
+              spacing: Style.space(8)
+
+              Text {
+                text: "APPEARANCE"
+                color: root.contentForeground
+                font.family: root.contentFontFamily
+                font.pixelSize: Style.font.bodySmall
+                font.bold: true
+                font.letterSpacing: 1
+              }
+
+              Item {
+                width: parent.width
+                height: Math.max(analogSettingLabel.implicitHeight, analogSetting.implicitHeight)
+
+                Text {
+                  id: analogSettingLabel
+                  anchors.left: parent.left
+                  anchors.verticalCenter: parent.verticalCenter
+                  text: "Analog clocks"
+                  color: root.contentForeground
+                  font.family: root.contentFontFamily
+                  font.pixelSize: Style.font.body
+                }
+
+                ToggleSwitch {
+                  id: analogSetting
+                  anchors.right: parent.right
+                  anchors.verticalCenter: parent.verticalCenter
+                  checked: root.showAnalogClock
+                  foreground: root.contentForeground
+                  accent: Color.accent
+                  onToggled: root.persistSetting("showAnalogClock", !checked)
+                }
+              }
+
+              Item {
+                width: parent.width
+                height: Math.max(hourFormatLabel.implicitHeight, hourFormatButtons.implicitHeight)
+
+                Text {
+                  id: hourFormatLabel
+                  anchors.left: parent.left
+                  anchors.verticalCenter: parent.verticalCenter
+                  text: "Hour format"
+                  color: root.contentForeground
+                  font.family: root.contentFontFamily
+                  font.pixelSize: Style.font.body
+                }
+
+                Row {
+                  id: hourFormatButtons
+                  anchors.right: parent.right
+                  anchors.verticalCenter: parent.verticalCenter
+                  spacing: Style.space(4)
+
+                  Button {
+                    text: "12 hour"
+                    selected: root.hourFormat === "12"
+                    foreground: root.contentForeground
+                    fontFamily: root.contentFontFamily
+                    fontSize: Style.font.bodySmall
+                    horizontalPadding: Style.space(8)
+                    verticalPadding: Style.space(4)
+                    onClicked: root.persistSetting("hourFormat", "12")
+                  }
+
+                  Button {
+                    text: "24 hour"
+                    selected: root.hourFormat === "24"
+                    foreground: root.contentForeground
+                    fontFamily: root.contentFontFamily
+                    fontSize: Style.font.bodySmall
+                    horizontalPadding: Style.space(8)
+                    verticalPadding: Style.space(4)
+                    onClicked: root.persistSetting("hourFormat", "24")
+                  }
+                }
               }
             }
           }
@@ -697,7 +830,7 @@ Panel {
 
                   Item {
                     width: parent.width
-                    height: Math.max(analogClock.implicitHeight,
+                    height: Math.max(analogClock.height,
                       locationBlock.implicitHeight, timeBlock.implicitHeight)
 
                     Column {
@@ -753,8 +886,11 @@ Panel {
 
                     AnalogClock {
                       id: analogClock
+                      visible: root.showAnalogClock
+                      width: visible ? implicitWidth : 0
+                      height: visible ? implicitHeight : 0
                       anchors.right: timeBlock.left
-                      anchors.rightMargin: Style.space(18)
+                      anchors.rightMargin: visible ? Style.space(18) : 0
                       anchors.verticalCenter: parent.verticalCenter
                       hour: clockCard.rendered ? clockCard.rendered.hour : 0
                       minute: clockCard.rendered ? clockCard.rendered.minute : 0
@@ -779,7 +915,10 @@ Panel {
 
                         Text {
                           id: localTimeText
-                          text: clockCard.rendered ? clockCard.rendered.time12 : "--:--"
+                          text: clockCard.rendered
+                            ? (root.hourFormat === "24"
+                                ? clockCard.rendered.time : clockCard.rendered.time12)
+                            : "--:--"
                           color: root.contentForeground
                           font.family: root.contentFontFamily
                           font.pixelSize: Style.font.iconLarge
@@ -787,6 +926,7 @@ Panel {
                         }
 
                         Text {
+                          visible: root.hourFormat === "12"
                           anchors.baseline: localTimeText.baseline
                           text: clockCard.rendered ? clockCard.rendered.period : ""
                           color: root.contentForeground
