@@ -1550,27 +1550,6 @@ Panel {
         }
       }
 
-      Rectangle {
-        id: scrollTrack
-        visible: scroll.contentHeight > scroll.height
-        anchors.top: scroll.top
-        anchors.right: scroll.right
-        anchors.bottom: scroll.bottom
-        width: Style.spacing.hairline
-        color: "transparent"
-
-        Rectangle {
-          width: parent.width
-          height: Math.max(Style.space(24), Math.min(Style.space(72),
-            parent.height * Math.min(1, scroll.visibleArea.heightRatio)))
-          y: (parent.height - height) * Math.min(1, Math.max(0,
-            scroll.visibleArea.yPosition
-              / Math.max(0.001, 1 - scroll.visibleArea.heightRatio)))
-          color: Color.accent
-          opacity: 0.8
-        }
-      }
-
       Column {
         id: shortcutFooter
         anchors.left: parent.left
