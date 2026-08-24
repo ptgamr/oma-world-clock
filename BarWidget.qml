@@ -13,9 +13,6 @@ BarWidget {
   // authoritative after the bar host has injected the shell.json entry.
   property bool hostSettingsReady: false
 
-  readonly property var configuredLocations: setting("locations", null)
-  readonly property int locationCount: Array.isArray(configuredLocations)
-    && configuredLocations.length > 0 ? configuredLocations.length : 3
   readonly property bool opened: panelLoader.item ? panelLoader.item.opened === true : false
   readonly property bool popoutSwitchClosing: panelLoader.item
     ? panelLoader.item.popoutSwitchClosing === true
@@ -92,7 +89,7 @@ BarWidget {
     id: button
     anchors.fill: parent
     bar: root.bar
-    text: root.vertical ? String(root.locationCount) : "󰥔  " + root.locationCount
+    text: "󰥔"
     tooltipText: "Open World Clock"
     onPressed: function(buttonCode) {
       if (buttonCode === Qt.LeftButton) root.toggle()
