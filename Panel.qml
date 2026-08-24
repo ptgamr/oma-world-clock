@@ -1557,8 +1557,7 @@ Panel {
         anchors.right: scroll.right
         anchors.bottom: scroll.bottom
         width: Style.spacing.hairline
-        color: root.contentForeground
-        opacity: 0.12
+        color: "transparent"
 
         Rectangle {
           width: parent.width
