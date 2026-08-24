@@ -585,7 +585,10 @@ New York     -16h
 Vietnam      -5h
 ```
 
-The home location does **not necessarily need to match the system timezone**, although it can default to it.
+On first run, the home location defaults to the detected system IANA timezone.
+The plugin adds two representative locations from other regions so the initial
+panel contains three geographically useful clocks. The user can change the
+home location later; automatic detection never replaces saved locations.
 
 ---
 

@@ -22,15 +22,20 @@ A standalone world-clock and meeting-planner plugin for the Omarchy Quattro bar.
 
 [![v7 simplified rows and appearance settings](screenshots/world-clock-panel-v7.png)](screenshots/world-clock-panel-v7.png)
 
-**v8 — square appearance switch (current)**
+**v8 — square appearance switch**
 
 [![v8 square appearance switch](screenshots/world-clock-panel-v8.png)](screenshots/world-clock-panel-v8.png)
 
-New UI captures increment the suffix (`v9`, `v10`, …) so earlier layouts remain available for comparison.
+**v9 — timezone-aware three-clock first run (current)**
+
+[![v9 timezone-aware first-run defaults](screenshots/world-clock-panel-v9.png)](screenshots/world-clock-panel-v9.png)
+
+New UI captures increment the suffix (`v10`, `v11`, …) so earlier layouts remain available for comparison.
 
 Version 0.1 includes:
 
 - multiple named IANA timezones with one home location
+- three-continent first-run defaults based on the machine's local timezone
 - DST-correct conversion for the selected instant
 - a ±12 hour planner with 15-minute snapping
 - local-calendar date navigation that remains correct across DST changes
@@ -65,10 +70,20 @@ omarchy bar move io.github.ptgamr.world-clock --section right
 
 ## Use
 
-Click the world-clock count in the bar to open the planner. The initial set
-contains Hanoi, Berlin, Pacific Time, and Wellington in that order. Pacific
-Time uses `America/Los_Angeles`, so it follows PST/PDT automatically. Hanoi is
-the default home location.
+Click the world-clock count in the bar to open the planner. On first run the
+plugin detects the machine's IANA timezone, puts it first as `HOME`, and adds
+two representative clocks from other regions:
+
+- Asia home: Berlin and New York
+- Europe home: Ho Chi Minh and New York
+- Americas home: Berlin and Ho Chi Minh
+- Africa home: Berlin and Ho Chi Minh
+- Oceania home: Ho Chi Minh and New York
+- UTC or an unclassified timezone: Berlin and Ho Chi Minh
+
+This produces three clocks in three different regions. The result is saved as
+normal location configuration, so detection runs only once and never replaces
+locations the user has already configured.
 
 - Drag or scroll the slider to move all clocks in 15-minute steps.
 - Press Left/Right for 15 minutes; hold Shift for one hour.
@@ -121,10 +136,22 @@ Locations are written into this widget's own entry in `~/.config/omarchy/shell.j
   "hourFormat": "12",
   "locations": [
     {
-      "id": "hanoi",
-      "name": "Hanoi",
-      "timezone": "Asia/Ho_Chi_Minh",
+      "id": "auckland",
+      "name": "Auckland",
+      "timezone": "Pacific/Auckland",
       "isHome": true
+    },
+    {
+      "id": "ho-chi-minh",
+      "name": "Ho Chi Minh",
+      "timezone": "Asia/Ho_Chi_Minh",
+      "isHome": false
+    },
+    {
+      "id": "new-york",
+      "name": "New York",
+      "timezone": "America/New_York",
+      "isHome": false
     }
   ]
 }
