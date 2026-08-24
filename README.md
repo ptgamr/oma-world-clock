@@ -6,7 +6,7 @@ or analog clocks.
 
 It works alongside the built-in `omarchy.clock`; it does not replace it.
 
-![Omarchy World Clock panel](preview.png)
+<img src="preview.png" alt="Omarchy World Clock panel" width="480">
 
 ## Features
 
