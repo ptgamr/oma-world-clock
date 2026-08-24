@@ -55,6 +55,21 @@ class RenderTests(unittest.TestCase):
         self.assertAlmostEqual(rows["new-york"]["latitude"], 40.714, places=2)
         self.assertAlmostEqual(rows["new-york"]["longitude"], -74.006, places=2)
 
+    def test_explicit_location_coordinates_override_timezone_reference_point(self):
+        locations = [{
+            "id": "hanoi",
+            "name": "Hanoi",
+            "timezone": "Asia/Ho_Chi_Minh",
+            "isHome": True,
+            "latitude": 21.0278,
+            "longitude": 105.8342,
+        }]
+        result = timezone.render_locations(
+            timestamp_ms(datetime(2026, 8, 24, 0, tzinfo=UTC)), locations
+        )
+        self.assertEqual(result["rows"][0]["latitude"], 21.0278)
+        self.assertEqual(result["rows"][0]["longitude"], 105.8342)
+
     def test_day_relationship_crosses_year_boundary(self):
         rows = self.rows_at(datetime(2026, 12, 31, 12, tzinfo=UTC))
         self.assertEqual(rows["home"]["date"], "2027-01-01")
@@ -192,6 +207,8 @@ class SearchTests(unittest.TestCase):
         zone_matches = timezone.search_zones("Asia/Kathmandu")
         self.assertEqual(city_matches[0]["timezone"], "America/New_York")
         self.assertEqual(zone_matches[0]["timezone"], "Asia/Kathmandu")
+        self.assertAlmostEqual(city_matches[0]["latitude"], 40.714, places=2)
+        self.assertAlmostEqual(city_matches[0]["longitude"], -74.006, places=2)
 
 
 class SystemTimezoneTests(unittest.TestCase):

@@ -68,6 +68,8 @@ Panel {
   property int suggestionIndex: 0
   property string chosenTimezone: ""
   property string chosenTimezoneName: ""
+  property var chosenLatitude: null
+  property var chosenLongitude: null
   property string pendingSearchQuery: ""
   property string activeSearchQuery: ""
   property bool assigningSuggestion: false
@@ -219,6 +221,8 @@ Panel {
     root.addingLocation = true
     root.chosenTimezone = ""
     root.chosenTimezoneName = ""
+    root.chosenLatitude = null
+    root.chosenLongitude = null
     root.timezoneSuggestions = []
     root.suggestionIndex = 0
     Qt.callLater(function() {
@@ -265,6 +269,8 @@ Panel {
     root.assigningSuggestion = false
     root.chosenTimezone = suggestion.timezone
     root.chosenTimezoneName = suggestion.name
+    root.chosenLatitude = suggestion.latitude === undefined ? null : suggestion.latitude
+    root.chosenLongitude = suggestion.longitude === undefined ? null : suggestion.longitude
     root.timezoneSuggestions = []
     if (String(nameField.text || "").trim() === "") nameField.text = suggestion.name
     nameField.forceActiveFocus()
@@ -273,11 +279,15 @@ Panel {
   function commitAddLocation() {
     var timezone = root.chosenTimezone
     var defaultName = root.chosenTimezoneName
+    var latitude = root.chosenLatitude
+    var longitude = root.chosenLongitude
     if (timezone === "" && root.timezoneSuggestions.length > 0) {
       var selected = root.timezoneSuggestions[Math.max(
         0, Math.min(root.suggestionIndex, root.timezoneSuggestions.length - 1))]
       timezone = selected.timezone
       defaultName = selected.name
+      latitude = selected.latitude === undefined ? null : selected.latitude
+      longitude = selected.longitude === undefined ? null : selected.longitude
     }
     if (timezone === "") {
       root.localError = "Choose a timezone from the search results."
@@ -285,7 +295,8 @@ Panel {
     }
 
     var name = String(nameField.text || "").trim() || defaultName
-    root.persistLocations(Model.addLocation(root.locations, name, timezone))
+    root.persistLocations(Model.addLocation(
+      root.locations, name, timezone, latitude, longitude))
     root.addingLocation = false
     root.timezoneSuggestions = []
     root.localError = ""
@@ -1114,6 +1125,8 @@ Panel {
                     if (root.assigningSuggestion) return
                     root.chosenTimezone = ""
                     root.chosenTimezoneName = ""
+                    root.chosenLatitude = null
+                    root.chosenLongitude = null
                     root.requestTimezoneSearch(text)
                   }
                   Keys.onPressed: function(event) {

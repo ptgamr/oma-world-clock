@@ -9,6 +9,19 @@ var REGION_DEFAULTS = {
   oceania: { id: "sydney", name: "Sydney", timezone: "Australia/Sydney", isHome: false }
 }
 
+var CITY_COORDINATES = {
+  "auckland": { latitude: -36.8509, longitude: 174.7645 },
+  "berlin": { latitude: 52.52, longitude: 13.405 },
+  "hanoi": { latitude: 21.0278, longitude: 105.8342 },
+  "ho chi minh": { latitude: 10.8231, longitude: 106.6297 },
+  "johannesburg": { latitude: -26.2041, longitude: 28.0473 },
+  "los angeles": { latitude: 34.0522, longitude: -118.2437 },
+  "new york": { latitude: 40.7128, longitude: -74.006 },
+  "pacific time": { latitude: 34.0522, longitude: -118.2437 },
+  "sydney": { latitude: -33.8688, longitude: 151.2093 },
+  "wellington": { latitude: -41.2866, longitude: 174.7756 }
+}
+
 var COMPLEMENTARY_REGIONS = {
   asia: ["europe", "america"],
   europe: ["asia", "america"],
@@ -23,13 +36,37 @@ function cleanText(value) {
     .replace(/^\s+|\s+$/g, "")
 }
 
+function validCoordinate(value, minimum, maximum) {
+  if (value === undefined || value === null || cleanText(value) === "") return null
+  var number = Number(value)
+  return isFinite(number) && number >= minimum && number <= maximum ? number : null
+}
+
+function coordinatesForLocation(location, name) {
+  var latitude = validCoordinate(location && location.latitude, -90, 90)
+  var longitude = validCoordinate(location && location.longitude, -180, 180)
+  if (latitude !== null && longitude !== null)
+    return { latitude: latitude, longitude: longitude }
+  return CITY_COORDINATES[cleanText(name).toLowerCase()] || null
+}
+
+function applyCoordinates(target, source, name) {
+  var coordinates = coordinatesForLocation(source, name)
+  if (coordinates) {
+    target.latitude = coordinates.latitude
+    target.longitude = coordinates.longitude
+  }
+  return target
+}
+
 function cloneLocation(location) {
-  return {
+  var name = cleanText(location && location.name)
+  return applyCoordinates({
     id: cleanText(location && location.id),
-    name: cleanText(location && location.name),
+    name: name,
     timezone: cleanText(location && location.timezone),
     isHome: !!(location && location.isHome)
-  }
+  }, location, name)
 }
 
 function timezoneRegion(timezone) {
@@ -60,7 +97,7 @@ function defaultLocations(systemTimezone) {
     isHome: true
   }
   var regions = COMPLEMENTARY_REGIONS[timezoneRegion(timezone)] || COMPLEMENTARY_REGIONS.other
-  var locations = [home]
+  var locations = [cloneLocation(home)]
   for (var i = 0; i < regions.length; i++)
     locations.push(cloneLocation(REGION_DEFAULTS[regions[i]]))
   return locations
@@ -104,7 +141,8 @@ function normalizeLocations(value) {
 
     var isHome = !!source.isHome && !homeFound
     if (isHome) homeFound = true
-    out.push({ id: id, name: name, timezone: timezone, isHome: isHome })
+    out.push(applyCoordinates(
+      { id: id, name: name, timezone: timezone, isHome: isHome }, source, name))
   }
 
   if (out.length === 0) return defaultLocations()
@@ -118,17 +156,17 @@ function homeLocation(locations) {
   return normalized[0]
 }
 
-function addLocation(locations, name, timezone) {
+function addLocation(locations, name, timezone, latitude, longitude) {
   var out = normalizeLocations(locations)
   var cleanZone = cleanText(timezone)
   if (cleanZone === "") return out
   var cleanName = cleanText(name) || cleanZone.split("/").pop().replace(/_/g, " ")
-  out.push({
+  out.push(applyCoordinates({
     id: uniqueId(out, cleanName),
     name: cleanName,
     timezone: cleanZone,
     isHome: false
-  })
+  }, { latitude: latitude, longitude: longitude }, cleanName))
   return out
 }
 
@@ -256,6 +294,7 @@ function metadataForRow(row, showAbbreviation, showDifference, showDayRelation) 
 if (typeof module !== "undefined") {
   module.exports = {
     defaultLocations: defaultLocations,
+    coordinatesForLocation: coordinatesForLocation,
     normalizeLocations: normalizeLocations,
     homeLocation: homeLocation,
     addLocation: addLocation,

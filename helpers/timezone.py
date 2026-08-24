@@ -13,6 +13,7 @@ import json
 import os
 import sys
 from datetime import UTC, date, datetime, time, timedelta
+from math import isfinite
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError, available_timezones
@@ -238,6 +239,24 @@ def coordinates_for_zone(
     return point if point is not None else (None, None)
 
 
+def coordinates_for_location(
+    location: dict[str, Any], coordinates: dict[str, tuple[float, float]]
+) -> tuple[float | None, float | None]:
+    try:
+        latitude = float(location["latitude"])
+        longitude = float(location["longitude"])
+        if (
+            isfinite(latitude)
+            and isfinite(longitude)
+            and -90 <= latitude <= 90
+            and -180 <= longitude <= 180
+        ):
+            return latitude, longitude
+    except (KeyError, TypeError, ValueError):
+        pass
+    return coordinates_for_zone(str(location.get("timezone", "")), coordinates)
+
+
 def calendar_strip(selected_date: date) -> dict[str, Any]:
     """Return the Sunday-first week containing the selected home date."""
 
@@ -428,7 +447,7 @@ def render_locations(timestamp_ms: int | float, locations: list[dict[str, Any]])
         local = instant.astimezone(zone(zone_name))
         local_offset = offset_minutes(local)
         hour_12 = local.hour % 12 or 12
-        latitude, longitude = coordinates_for_zone(zone_name, coordinates)
+        latitude, longitude = coordinates_for_location(location, coordinates)
         rows.append(
             {
                 "id": str(location.get("id", "")),
@@ -519,9 +538,9 @@ def country_names() -> dict[str, str]:
     return result
 
 
-def zone_records() -> list[dict[str, str]]:
+def zone_records() -> list[dict[str, Any]]:
     countries = country_names()
-    records: dict[str, dict[str, str]] = {}
+    records: dict[str, dict[str, Any]] = {}
     for filename in ("zone1970.tab", "zone.tab"):
         path = Path("/usr/share/zoneinfo") / filename
         try:
@@ -534,13 +553,24 @@ def zone_records() -> list[dict[str, str]]:
             fields = line.split("\t")
             if len(fields) < 3:
                 continue
-            codes, _, zone_name = fields[:3]
+            codes, coordinate_text, zone_name = fields[:3]
             comment = fields[3] if len(fields) > 3 else ""
             country = ", ".join(countries.get(code, code) for code in codes.split(","))
             city = zone_name.rsplit("/", 1)[-1].replace("_", " ")
+            try:
+                latitude, longitude = parse_zone_coordinates(coordinate_text)
+            except ValueError:
+                continue
             records.setdefault(
                 zone_name,
-                {"timezone": zone_name, "name": city, "country": country, "description": comment},
+                {
+                    "timezone": zone_name,
+                    "name": city,
+                    "country": country,
+                    "description": comment,
+                    "latitude": latitude,
+                    "longitude": longitude,
+                },
             )
 
     for zone_name in available_timezones():
@@ -558,14 +588,14 @@ def zone_records() -> list[dict[str, str]]:
     return list(records.values())
 
 
-def search_zones(query: str, limit: int = 8) -> list[dict[str, str]]:
+def search_zones(query: str, limit: int = 8) -> list[dict[str, Any]]:
     needle = " ".join(query.strip().lower().replace("_", " ").split())
     records = zone_records()
     if not needle:
         by_zone = {item["timezone"]: item for item in records}
         return [by_zone[name] for name in POPULAR_ZONES if name in by_zone][:limit]
 
-    def score(item: dict[str, str]) -> tuple[int, int, str]:
+    def score(item: dict[str, Any]) -> tuple[int, int, str]:
         timezone = item["timezone"].lower()
         name = item["name"].lower()
         haystack = " ".join((timezone.replace("_", " "), name, item["country"].lower(), item["description"].lower()))
