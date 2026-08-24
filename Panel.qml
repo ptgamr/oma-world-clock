@@ -108,6 +108,12 @@ Panel {
       root.bar.centerHoverRevealSuppressed = value
   }
 
+  function openFullView() {
+    if (!root.bar || !root.bar.shell || typeof root.bar.shell.summon !== "function") return
+    root.close()
+    root.bar.shell.summon(root.moduleName, JSON.stringify({ source: "compact" }))
+  }
+
   function resetToNow() {
     if (root.service) root.service.resetToNow()
   }
@@ -576,6 +582,16 @@ Panel {
               anchors.right: parent.right
               anchors.verticalCenter: parent.verticalCenter
               spacing: Style.space(4)
+
+              Button {
+                text: "Full view"
+                foreground: root.contentForeground
+                fontFamily: root.contentFontFamily
+                fontSize: Style.font.bodySmall
+                horizontalPadding: Style.space(9)
+                verticalPadding: Style.space(5)
+                onClicked: root.openFullView()
+              }
 
               Button {
                 text: root.showingSettings ? "Done" : "Settings"

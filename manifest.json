@@ -8,10 +8,12 @@
   "description": "DST-correct world clocks and a meeting-time planner for the Omarchy bar.",
   "kinds": [
     "bar-widget",
+    "panel",
     "service"
   ],
   "entryPoints": {
     "barWidget": "BarWidget.qml",
+    "panel": "FullView.qml",
     "service": "components/WorldClockService.qml"
   },
   "barWidget": {
