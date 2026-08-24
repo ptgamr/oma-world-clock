@@ -100,6 +100,13 @@ assert.equal(Model.homeLocation(newHome).id, "new-york")
 const withoutHome = Model.removeLocation(newHome, "new-york")
 assert.equal(withoutHome[0].isHome, true)
 
+assert.equal(Model.movedSelection(-1, 4, 1, false), 0)
+assert.equal(Model.movedSelection(0, 4, -1, false), 3)
+assert.equal(Model.movedSelection(1, 4, 1, true), 2)
+assert.equal(Model.movedSelection(0, 4, -1, true), 0)
+assert.equal(Model.clampedIndex(8, 4), 3)
+assert.equal(Model.clampedIndex(0, 0), -1)
+
 const previewBaseTimestamp = Date.UTC(2026, 7, 24, 10, 0)
 const previewRows = Model.previewRenderedRows([
   {

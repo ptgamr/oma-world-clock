@@ -63,6 +63,8 @@ Panel {
   property bool addingLocation: false
   property string renamingId: ""
   readonly property bool editorOpen: addingLocation || renamingId !== ""
+  property int selectedIndex: -1
+  property bool cursorActive: false
 
   property var timezoneSuggestions: []
   property int suggestionIndex: 0
@@ -136,6 +138,56 @@ Panel {
     if (root.service) root.service.requestRender()
   }
 
+  function selectedLocation() {
+    if (root.selectedIndex < 0 || root.selectedIndex >= root.locations.length) return null
+    return root.locations[root.selectedIndex]
+  }
+
+  function revealSelection() {
+    if (root.selectedIndex < 0 || !clockRepeater) return
+    Qt.callLater(function() {
+      var item = clockRepeater.itemAt(root.selectedIndex)
+      if (!item || !scroll || !contentColumn) return
+      var point = item.mapToItem(contentColumn, 0, 0)
+      var top = point.y
+      var bottom = top + item.height
+      if (top < scroll.contentY) scroll.contentY = top
+      else if (bottom > scroll.contentY + scroll.height)
+        scroll.contentY = Math.min(scroll.contentHeight - scroll.height, bottom - scroll.height)
+    })
+  }
+
+  function selectLocation(index) {
+    root.selectedIndex = Model.clampedIndex(index, root.locations.length)
+    root.cursorActive = root.selectedIndex >= 0
+    root.revealSelection()
+  }
+
+  function moveSelection(delta) {
+    if (root.editorOpen || root.locations.length === 0) return
+    root.selectedIndex = Model.movedSelection(
+      root.selectedIndex, root.locations.length, delta, root.cursorActive)
+    root.cursorActive = true
+    root.revealSelection()
+  }
+
+  function toggleSettings() {
+    root.cancelEditors()
+    root.managingLocations = false
+    root.showingSettings = !root.showingSettings
+  }
+
+  function toggleManage() {
+    root.cancelEditors()
+    root.showingSettings = false
+    root.managingLocations = !root.managingLocations
+  }
+
+  function markSelectedHome() {
+    var location = root.selectedLocation()
+    if (location && !location.isHome) root.setHomeLocation(location.id)
+  }
+
   function renderedRow(id) {
     return root.service ? root.service.renderedRow(id) : null
   }
@@ -191,11 +243,23 @@ Panel {
   }
 
   function moveLocation(id, delta) {
+    for (var i = 0; i < root.locations.length; i++) {
+      if (root.locations[i].id !== id) continue
+      root.selectedIndex = Model.clampedIndex(i + delta, root.locations.length)
+      root.cursorActive = true
+      break
+    }
     root.persistLocations(Model.moveLocation(root.locations, id, delta))
+    root.revealSelection()
   }
 
   function setHomeLocation(id) {
     root.persistLocations(Model.setHomeLocation(root.locations, id))
+  }
+
+  onLocationsChanged: {
+    root.selectedIndex = Model.clampedIndex(root.selectedIndex, root.locations.length)
+    if (root.cursorActive) root.revealSelection()
   }
 
   function startRename(id, name) {
@@ -391,7 +455,12 @@ Panel {
       Keys.onPressed: function(event) {
         if (root.editorOpen) return
         if (event.key === Qt.Key_Escape) {
-          root.close()
+          if (root.managingLocations || root.showingSettings) {
+            root.managingLocations = false
+            root.showingSettings = false
+          } else {
+            root.close()
+          }
           event.accepted = true
         } else if (event.key === Qt.Key_Tab || event.key === Qt.Key_Backtab) {
           root.switchPanel((event.modifiers & Qt.ShiftModifier) || event.key === Qt.Key_Backtab ? -1 : 1)
@@ -401,6 +470,21 @@ Panel {
           event.accepted = true
         } else if (event.key === Qt.Key_Right) {
           root.stepPlanner(1, !!(event.modifiers & Qt.ShiftModifier))
+          event.accepted = true
+        } else if (event.key === Qt.Key_Down || event.text === "j") {
+          root.moveSelection(1)
+          event.accepted = true
+        } else if (event.key === Qt.Key_Up || event.text === "k") {
+          root.moveSelection(-1)
+          event.accepted = true
+        } else if (event.text === "m" || event.text === "M") {
+          root.toggleManage()
+          event.accepted = true
+        } else if (event.text === "s" || event.text === "S") {
+          root.toggleSettings()
+          event.accepted = true
+        } else if (event.text === "h" || event.text === "H") {
+          root.markSelectedHome()
           event.accepted = true
         } else if (event.text === "t" || event.text === "T") {
           root.resetToNow()
@@ -613,9 +697,7 @@ Panel {
                 horizontalPadding: Style.space(9)
                 verticalPadding: Style.space(5)
                 onClicked: {
-                  root.cancelEditors()
-                  root.managingLocations = false
-                  root.showingSettings = !root.showingSettings
+                  root.toggleSettings()
                 }
               }
 
@@ -629,9 +711,7 @@ Panel {
                 horizontalPadding: Style.space(9)
                 verticalPadding: Style.space(5)
                 onClicked: {
-                  root.cancelEditors()
-                  root.showingSettings = false
-                  root.managingLocations = !root.managingLocations
+                  root.toggleManage()
                 }
               }
             }
@@ -748,9 +828,10 @@ Panel {
             spacing: Style.space(4)
 
             Repeater {
+              id: clockRepeater
               model: root.locations
 
-              Rectangle {
+              CursorSurface {
                 id: clockCard
                 required property var modelData
                 required property int index
@@ -759,10 +840,17 @@ Panel {
 
                 width: clocks.width
                 implicitHeight: rowContent.implicitHeight + Style.space(18)
-                radius: Style.cornerRadius
-                color: modelData.isHome
-                  ? Style.selectedFillFor(root.contentForeground, Color.accent, Color.urgent)
-                  : "transparent"
+                hasCursor: root.cursorActive && index === root.selectedIndex
+                current: modelData.isHome
+                foreground: root.contentForeground
+                accent: Color.accent
+
+                MouseArea {
+                  anchors.fill: parent
+                  hoverEnabled: true
+                  onEntered: root.selectLocation(clockCard.index)
+                  onClicked: root.selectLocation(clockCard.index)
+                }
 
                 Column {
                   id: rowContent
@@ -1023,7 +1111,7 @@ Panel {
           Text {
             width: parent.width
             horizontalAlignment: Text.AlignHCenter
-            text: "←/→ 15 min   ·   Shift + ←/→ 1 hour   ·   T now"
+            text: "j/k select   ·   h home   ·   m manage   ·   s settings"
             color: Qt.darker(root.contentForeground, 1.6)
             font.family: root.contentFontFamily
             font.pixelSize: Style.font.bodySmall

@@ -224,6 +224,19 @@ function setHomeLocation(locations, id) {
   return normalized
 }
 
+function clampedIndex(index, count) {
+  var length = Math.max(0, Number(count || 0))
+  if (length === 0) return -1
+  return Math.max(0, Math.min(length - 1, Number(index || 0)))
+}
+
+function movedSelection(index, count, delta, cursorActive) {
+  var length = Math.max(0, Number(count || 0))
+  if (length === 0) return -1
+  if (cursorActive !== true) return Number(delta || 0) < 0 ? length - 1 : 0
+  return clampedIndex(Number(index || 0) + Number(delta || 0), length)
+}
+
 function paddedNumber(value) {
   return Number(value) < 10 ? "0" + Number(value) : String(Number(value))
 }
@@ -380,6 +393,8 @@ if (typeof module !== "undefined") {
     renameLocation: renameLocation,
     moveLocation: moveLocation,
     setHomeLocation: setHomeLocation,
+    clampedIndex: clampedIndex,
+    movedSelection: movedSelection,
     previewRenderedRows: previewRenderedRows,
     clampPlannerMinutes: clampPlannerMinutes,
     formatDuration: formatDuration,
