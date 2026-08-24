@@ -1,10 +1,11 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import qs.Commons
 import qs.Ui
 
-// A deliberately compact companion to omarchy.clock. The count communicates
-// that this opens a group of clocks without duplicating the local time label.
+// A deliberately compact companion to omarchy.clock. The icon opens the
+// configured clock group without duplicating the local time label.
 BarWidget {
   id: root
   moduleName: "io.github.ptgamr.world-clock"
