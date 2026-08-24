@@ -1,8 +1,10 @@
 # Omarchy World Clock
 
-A keyboard-friendly world clock for the Omarchy Quattro bar. Compare several
-locations, plan up to 24 hours ahead or behind, and keep the built-in
-`omarchy.clock` alongside it.
+A keyboard-friendly world clock for the Omarchy Quattro bar. Track multiple
+locations, plan with the time slider, and compare local times using digital
+or analog clocks.
+
+It works alongside the built-in `omarchy.clock`; it does not replace it.
 
 ![Omarchy World Clock panel](preview.png)
 
