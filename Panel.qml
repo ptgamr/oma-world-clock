@@ -325,7 +325,7 @@ Panel {
       return "Type a new name · Enter save · Esc cancel"
     if (root.showingSettings)
       return "j/k · ←/→ change · Enter apply · a analog · 1/2 format · s done"
-    return "j/k select · J/K move · A add · R rename · D delete · H home · S settings · T now"
+    return "j/k select · J/K reorder · ←/→ time · T now · A add · R rename · D delete · H home · S settings"
   }
 
   function clockRowStep(index) {
