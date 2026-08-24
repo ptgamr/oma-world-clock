@@ -1,4 +1,5 @@
 import QtQuick
+import Quickshell.Io
 import qs.Commons
 import qs.Ui
 
@@ -12,16 +13,10 @@ BorderSurface {
   property string fontFamily: Style.font.family
 
   readonly property var rows: service ? service.renderedRows : []
-  readonly property var continents: [
-    [[-168, 71], [-140, 69], [-124, 55], [-125, 42], [-117, 32], [-105, 24], [-97, 19], [-83, 25], [-81, 31], [-66, 45], [-60, 54], [-82, 62], [-106, 72]],
-    [[-81, 12], [-70, 10], [-61, 5], [-51, -2], [-48, -15], [-57, -35], [-69, -55], [-76, -42], [-82, -18]],
-    [[-73, 60], [-52, 59], [-35, 68], [-24, 82], [-51, 84], [-70, 75]],
-    [[-11, 36], [3, 44], [21, 39], [33, 31], [43, 12], [51, 11], [42, -18], [31, -35], [17, -35], [8, -18], [-5, 5], [-17, 15]],
-    [[-11, 36], [-10, 44], [5, 55], [25, 71], [59, 73], [86, 77], [116, 71], [143, 57], [163, 60], [180, 51], [162, 39], [141, 35], [130, 20], [114, 5], [104, 1], [96, 8], [82, 8], [71, 24], [57, 27], [45, 40], [31, 42], [20, 34], [8, 36]],
-    [[113, -11], [136, -12], [153, -27], [146, -39], [124, -35], [113, -23]],
-    [[166, -34], [179, -38], [177, -47], [168, -46]],
-    [[48, -13], [51, -17], [49, -25], [44, -20]]
-  ]
+  readonly property string mapDataPath: decodeURIComponent(
+    String(Qt.resolvedUrl("../assets/world-land-110m.json")).replace(/^file:\/\//, ""))
+  property var continents: []
+  property string mapDataError: ""
 
   implicitHeight: Style.space(268)
   color: Style.normalFillFor(root.foreground, root.accent, root.urgent)
@@ -41,6 +36,30 @@ BorderSurface {
       ? row.time
       : row.time12 + " " + row.period
   }
+
+  function loadMapData(raw) {
+    try {
+      var data = JSON.parse(String(raw || ""))
+      if (!data || !Array.isArray(data.polygons) || data.polygons.length === 0)
+        throw new Error("missing polygons")
+      root.continents = data.polygons
+      root.mapDataError = ""
+    } catch (error) {
+      root.continents = []
+      root.mapDataError = "Map data unavailable"
+    }
+  }
+
+  FileView {
+    id: mapDataFile
+    path: root.mapDataPath
+    watchChanges: false
+    printErrors: false
+    onLoaded: root.loadMapData(text())
+    onLoadFailed: root.mapDataError = "Map data unavailable"
+  }
+
+  onContinentsChanged: Qt.callLater(function() { mapCanvas.requestPaint() })
 
   Item {
     anchors.fill: parent
@@ -222,6 +241,15 @@ BorderSurface {
             }
           }
         }
+      }
+
+      Text {
+        visible: root.mapDataError !== ""
+        anchors.centerIn: parent
+        text: root.mapDataError
+        color: Qt.darker(root.foreground, 1.35)
+        font.family: root.fontFamily
+        font.pixelSize: Style.font.body
       }
     }
   }
