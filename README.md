@@ -10,11 +10,15 @@ A standalone world-clock and meeting-planner plugin for the Omarchy Quattro bar.
 | v3 — compact | v4 — analog day/night |
 | [![v3 compact panel](screenshots/world-clock-panel-v3.png)](screenshots/world-clock-panel-v3.png) | [![v4 analog day-night panel](screenshots/world-clock-panel-v4.png)](screenshots/world-clock-panel-v4.png) |
 
-**v5 — aligned analog faces with seconds hand (current)**
+**v5 — aligned analog faces with seconds hand**
 
 [![v5 aligned analog clocks with red seconds hand](screenshots/world-clock-panel-v5.png)](screenshots/world-clock-panel-v5.png)
 
-New UI captures increment the suffix (`v6`, `v7`, …) so earlier layouts remain available for comparison.
+**v6 — weekday and timezone columns (current)**
+
+[![v6 weekday and timezone columns](screenshots/world-clock-panel-v6.png)](screenshots/world-clock-panel-v6.png)
+
+New UI captures increment the suffix (`v7`, `v8`, …) so earlier layouts remain available for comparison.
 
 Version 0.1 includes:
 
@@ -24,6 +28,7 @@ Version 0.1 includes:
 - local-calendar date navigation that remains correct across DST changes
 - working-hours, edge-hours, and off-hours indicators
 - aligned analog faces with light/day, dark/night dials and a live red seconds hand
+- full local weekdays and aligned timezone details beneath each digital clock
 - add, remove, rename, reorder, and set-home controls
 - timezone search backed by the installed system timezone database
 - configuration persistence in this plugin's own `shell.json` bar entry
