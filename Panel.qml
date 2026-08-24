@@ -65,6 +65,8 @@ Panel {
   readonly property bool editorOpen: addingLocation || renamingId !== ""
   property int selectedIndex: -1
   property bool cursorActive: false
+  property int settingsIndex: 0
+  property bool settingsCursorActive: false
   property bool reorderAnimating: false
   property int reorderFrom: -1
   property int reorderTo: -1
@@ -103,7 +105,9 @@ Panel {
   function close() {
     root.setCenterHoverRevealSuppressed(false)
     root.cancelEditors()
+    root.managingLocations = false
     root.showingSettings = false
+    root.settingsCursorActive = false
     root.controller.hide()
   }
 
@@ -186,17 +190,82 @@ Panel {
     root.cancelEditors()
     root.managingLocations = false
     root.showingSettings = !root.showingSettings
+    root.settingsIndex = 0
+    root.settingsCursorActive = root.showingSettings
   }
 
   function toggleManage() {
     root.cancelEditors()
     root.showingSettings = false
+    root.settingsCursorActive = false
     root.managingLocations = !root.managingLocations
+    if (root.managingLocations)
+      root.selectLocation(root.selectedIndex >= 0 ? root.selectedIndex : 0)
   }
 
   function markSelectedHome() {
     var location = root.selectedLocation()
     if (location && !location.isHome) root.setHomeLocation(location.id)
+  }
+
+  function startRenameSelected() {
+    var location = root.selectedLocation()
+    if (root.managingLocations && location)
+      root.startRename(location.id, location.name)
+  }
+
+  function removeSelectedLocation() {
+    var location = root.selectedLocation()
+    if (root.managingLocations && location && root.locations.length > 1)
+      root.removeLocation(location.id)
+  }
+
+  function moveSettingsSelection(delta) {
+    root.settingsIndex = Model.clampedIndex(root.settingsIndex + delta, 2)
+    root.settingsCursorActive = true
+  }
+
+  function selectSetting(index) {
+    root.settingsIndex = Model.clampedIndex(index, 2)
+    root.settingsCursorActive = true
+  }
+
+  function setAnalogClocks(value) {
+    root.persistSetting("showAnalogClock", value)
+  }
+
+  function setHourFormat(value) {
+    root.persistSetting("hourFormat", value === "24" ? "24" : "12")
+  }
+
+  function adjustSelectedSetting(direction) {
+    if (root.settingsIndex === 0) root.setAnalogClocks(direction > 0)
+    else root.setHourFormat(direction > 0 ? "24" : "12")
+  }
+
+  function activateSelectedSetting() {
+    if (root.settingsIndex === 0) root.setAnalogClocks(!root.showAnalogClock)
+    else root.setHourFormat(root.hourFormat === "12" ? "24" : "12")
+  }
+
+  function activateKeyboardSelection() {
+    if (root.showingSettings) {
+      root.activateSelectedSetting()
+      return true
+    }
+    if (root.managingLocations) {
+      root.startRenameSelected()
+      return true
+    }
+    return false
+  }
+
+  function shortcutHint() {
+    if (root.showingSettings)
+      return "j/k select · ←/→ choose · Enter apply · a analog · 1/2 format · s done"
+    if (root.managingLocations)
+      return "j/k select · J/K move · r rename · h home · x delete · a add · m done"
+    return "j/k select · J/K reorder · h home · m manage · s settings · o full view"
   }
 
   function clockRowStep(index) {
@@ -558,21 +627,28 @@ Panel {
           root.switchPanel((event.modifiers & Qt.ShiftModifier) || event.key === Qt.Key_Backtab ? -1 : 1)
           event.accepted = true
         } else if (event.key === Qt.Key_Left) {
-          root.stepPlanner(-1, !!(event.modifiers & Qt.ShiftModifier))
+          if (root.showingSettings) root.adjustSelectedSetting(-1)
+          else root.stepPlanner(-1, !!(event.modifiers & Qt.ShiftModifier))
           event.accepted = true
         } else if (event.key === Qt.Key_Right) {
-          root.stepPlanner(1, !!(event.modifiers & Qt.ShiftModifier))
+          if (root.showingSettings) root.adjustSelectedSetting(1)
+          else root.stepPlanner(1, !!(event.modifiers & Qt.ShiftModifier))
           event.accepted = true
         } else if (event.key === Qt.Key_Down || event.text === "j") {
-          root.moveSelection(1)
+          if (root.showingSettings) root.moveSettingsSelection(1)
+          else root.moveSelection(1)
           event.accepted = true
         } else if (event.key === Qt.Key_Up || event.text === "k") {
-          root.moveSelection(-1)
+          if (root.showingSettings) root.moveSettingsSelection(-1)
+          else root.moveSelection(-1)
           event.accepted = true
-        } else if (event.text === "J") {
+        } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter
+            || event.key === Qt.Key_Space) {
+          if (root.activateKeyboardSelection()) event.accepted = true
+        } else if (!root.showingSettings && event.text === "J") {
           root.moveSelectedLocation(1)
           event.accepted = true
-        } else if (event.text === "K") {
+        } else if (!root.showingSettings && event.text === "K") {
           root.moveSelectedLocation(-1)
           event.accepted = true
         } else if (event.text === "m" || event.text === "M") {
@@ -581,8 +657,40 @@ Panel {
         } else if (event.text === "s" || event.text === "S") {
           root.toggleSettings()
           event.accepted = true
-        } else if (event.text === "h" || event.text === "H") {
+        } else if (!root.showingSettings && (event.text === "h" || event.text === "H")) {
           root.markSelectedHome()
+          event.accepted = true
+        } else if (root.managingLocations && (event.text === "r" || event.text === "R")) {
+          root.startRenameSelected()
+          event.accepted = true
+        } else if (root.managingLocations && (event.key === Qt.Key_Delete
+            || event.text === "x" || event.text === "X")) {
+          root.removeSelectedLocation()
+          event.accepted = true
+        } else if (event.text === "a" || event.text === "A") {
+          if (root.managingLocations) root.startAddingLocation()
+          else if (root.showingSettings) {
+            root.selectSetting(0)
+            root.setAnalogClocks(!root.showAnalogClock)
+          }
+          else return
+          event.accepted = true
+        } else if (root.showingSettings && event.text === "1") {
+          root.selectSetting(1)
+          root.setHourFormat("12")
+          event.accepted = true
+        } else if (root.showingSettings && event.text === "2") {
+          root.selectSetting(1)
+          root.setHourFormat("24")
+          event.accepted = true
+        } else if (event.text === "o" || event.text === "O") {
+          root.openFullView()
+          event.accepted = true
+        } else if (event.text === "[" || event.text === "{") {
+          root.shiftPlanningDate(event.text === "{" ? -7 : -1)
+          event.accepted = true
+        } else if (event.text === "]" || event.text === "}") {
+          root.shiftPlanningDate(event.text === "}" ? 7 : 1)
           event.accepted = true
         } else if (event.text === "t" || event.text === "T") {
           root.resetToNow()
@@ -838,13 +946,26 @@ Panel {
                 font.letterSpacing: 1
               }
 
-              Item {
+              CursorSurface {
+                id: analogSettingRow
                 width: parent.width
                 height: Math.max(analogSettingLabel.implicitHeight, analogSetting.implicitHeight)
+                  + Style.space(8)
+                hasCursor: root.showingSettings && root.settingsCursorActive
+                  && root.settingsIndex === 0
+                foreground: root.contentForeground
+                accent: Color.accent
+
+                MouseArea {
+                  anchors.fill: parent
+                  hoverEnabled: true
+                  onEntered: root.selectSetting(0)
+                }
 
                 Text {
                   id: analogSettingLabel
                   anchors.left: parent.left
+                  anchors.leftMargin: Style.space(6)
                   anchors.verticalCenter: parent.verticalCenter
                   text: "Analog clocks"
                   color: root.contentForeground
@@ -855,22 +976,36 @@ Panel {
                 ToggleSwitch {
                   id: analogSetting
                   anchors.right: parent.right
+                  anchors.rightMargin: Style.space(6)
                   anchors.verticalCenter: parent.verticalCenter
                   checked: root.showAnalogClock
                   rounded: false
                   foreground: root.contentForeground
                   accent: Color.accent
-                  onToggled: root.persistSetting("showAnalogClock", !checked)
+                  onToggled: root.setAnalogClocks(!checked)
                 }
               }
 
-              Item {
+              CursorSurface {
+                id: hourFormatSettingRow
                 width: parent.width
                 height: Math.max(hourFormatLabel.implicitHeight, hourFormatButtons.implicitHeight)
+                  + Style.space(8)
+                hasCursor: root.showingSettings && root.settingsCursorActive
+                  && root.settingsIndex === 1
+                foreground: root.contentForeground
+                accent: Color.accent
+
+                MouseArea {
+                  anchors.fill: parent
+                  hoverEnabled: true
+                  onEntered: root.selectSetting(1)
+                }
 
                 Text {
                   id: hourFormatLabel
                   anchors.left: parent.left
+                  anchors.leftMargin: Style.space(6)
                   anchors.verticalCenter: parent.verticalCenter
                   text: "Hour format"
                   color: root.contentForeground
@@ -881,6 +1016,7 @@ Panel {
                 Row {
                   id: hourFormatButtons
                   anchors.right: parent.right
+                  anchors.rightMargin: Style.space(6)
                   anchors.verticalCenter: parent.verticalCenter
                   spacing: Style.space(4)
 
@@ -892,7 +1028,7 @@ Panel {
                     fontSize: Style.font.bodySmall
                     horizontalPadding: Style.space(8)
                     verticalPadding: Style.space(4)
-                    onClicked: root.persistSetting("hourFormat", "12")
+                    onClicked: root.setHourFormat("12")
                   }
 
                   Button {
@@ -903,7 +1039,7 @@ Panel {
                     fontSize: Style.font.bodySmall
                     horizontalPadding: Style.space(8)
                     verticalPadding: Style.space(4)
-                    onClicked: root.persistSetting("hourFormat", "24")
+                    onClicked: root.setHourFormat("24")
                   }
                 }
               }
@@ -1241,7 +1377,7 @@ Panel {
           Text {
             width: parent.width
             horizontalAlignment: Text.AlignHCenter
-            text: "j/k select   ·   J/K reorder   ·   h home   ·   m manage   ·   s settings"
+            text: root.shortcutHint()
             color: Qt.darker(root.contentForeground, 1.6)
             font.family: root.contentFontFamily
             font.pixelSize: Style.font.bodySmall
