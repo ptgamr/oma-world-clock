@@ -285,10 +285,12 @@ Panel {
     if (target < 0 || from === target) return
     var source = root.locations[from]
     root.reorderedLocations = Model.moveLocation(root.locations, source.id, target - from)
+    root.cursorActive = true
+    // Arm Behaviors before changing the offsets, matching Omamux's reorder
+    // sequence so the source and displaced rows animate instead of jumping.
+    root.reorderAnimating = true
     root.reorderFrom = from
     root.reorderTo = target
-    root.reorderAnimating = true
-    root.cursorActive = true
     reorderTimer.restart()
   }
 
