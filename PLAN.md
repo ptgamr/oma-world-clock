@@ -1054,6 +1054,8 @@ Implemented:
 - bundled Natural Earth world map with precise city markers
 - selected-time day/night terminator
 - projection-preserving 2:1 map canvas at every window width
+- bundled geographic timezone boundaries with hover and click hit-testing
+- explicit add-clock confirmation for a map-selected timezone
 
 Acceptance criteria:
 
@@ -1086,6 +1088,7 @@ Version `0.1` should include:
 - horizontal 24-hour timezone timeline
 - meeting range and copy action
 - local day/night world map
+- interactive timezone-region selection and add-clock action
 
 It must coexist with `omarchy.clock`.
 
@@ -1127,6 +1130,7 @@ The expanded workspace now includes:
 - a horizontal 24-hour availability timeline for every location
 - a selected meeting-time range shared by all rows
 - a world map with location markers and a day/night overlay
+- geographic timezone boundaries that can be hovered, selected, and added
 - larger calendar navigation and copy/share controls
 
 The compact panel and expanded window share the same locations and one
@@ -1134,7 +1138,8 @@ canonical planning timestamp. New search selections save coordinates from the
 installed IANA timezone tables, known existing city labels are migrated to
 their precise coordinates, and other saved clocks fall back to the timezone's
 representative point. The bundled Natural Earth geometry keeps the map local,
-so it requires no external map service.
+and the simplified timezone-boundary-builder database performs point lookup
+without an external map service.
 
 ## Find Best Meeting Time
 

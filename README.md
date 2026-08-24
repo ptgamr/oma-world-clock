@@ -38,11 +38,15 @@ A standalone world-clock and meeting-planner plugin for the Omarchy Quattro bar.
 
 [![v11 expanded planner with real coastlines and precise city markers](screenshots/world-clock-full-v11.png)](screenshots/world-clock-full-v11.png)
 
-**v12 — proportionate world map (current)**
+**v12 — proportionate world map**
 
 [![v12 expanded planner with a proportionate world map](screenshots/world-clock-full-v12.png)](screenshots/world-clock-full-v12.png)
 
-New UI captures increment the suffix (`v10`, `v11`, `v12`, …) so earlier layouts remain available for comparison.
+**v13 — interactive timezone boundaries (current)**
+
+[![v13 expanded planner with London selected from its timezone boundary](screenshots/world-clock-full-v13.png)](screenshots/world-clock-full-v13.png)
+
+New UI captures increment the suffix (`v10`, `v11`, `v12`, `v13`, …) so earlier layouts remain available for comparison.
 
 Version 0.1 includes:
 
@@ -60,6 +64,7 @@ Version 0.1 includes:
 - a DST-correct horizontal 24-hour timeline with a selectable meeting range
 - 15-minute meeting-duration controls and a `Copy meeting time` action
 - a bundled Natural Earth world map with precise city markers and selected-time day/night shading
+- interactive geographic timezone boundaries with hover, selection, and add-clock actions
 - configuration persistence in this plugin's own `shell.json` bar entry
 
 ## Requirements
@@ -69,6 +74,11 @@ Version 0.1 includes:
 - installed system timezone data (`tzdata` on Arch Linux)
 
 The plugin runs `helpers/timezone.py` locally with fixed argument arrays. It does not use the network, start a service, request privileges, or execute a shell.
+
+The coastline asset comes from public-domain Natural Earth data. The compact
+timezone lookup is derived from timezone-boundary-builder release 2026c and is
+available under the Open Database License 1.0; source, checksum, attribution,
+and regeneration details are in [`assets/TIMEZONE_BOUNDARIES.md`](assets/TIMEZONE_BOUNDARIES.md).
 
 ## Install
 
@@ -115,6 +125,9 @@ locations the user has already configured.
 - Use `−` / `+` to change the meeting duration in 15-minute steps.
 - Click `Copy meeting time` to copy every location's local time range.
 - The world map follows the same selected instant, plots saved city coordinates, and shades the night side locally.
+- Hover a land region to reveal its geographic IANA timezone.
+- Click a region to lock the selection, then click `Add clock`; configured zones show `Added` instead.
+- Clicking near an existing city marker preserves that clock's chosen timezone and label.
 
 ## Validate
 
@@ -123,6 +136,7 @@ omarchy plugin validate .
 qmllint -I /usr/share/omarchy/shell BarWidget.qml Panel.qml FullView.qml components/*.qml
 python -m unittest discover -s tests
 node tests/model-test.js
+node tests/timezone-lookup-test.js
 ```
 
 For a reviewer screenshot of the loaded panel while the session is unlocked,
@@ -143,7 +157,7 @@ omarchy-shell shell setBarWidget io.github.ptgamr.world-clock _capturePreview fa
 ```
 
 A secure compositor lock can prevent the popup surface from mapping. The
-checked-in v12 screenshot was therefore rendered offscreen from the real
+checked-in v13 screenshot was therefore rendered offscreen from the real
 full-view QML components, current Omarchy theme values, and deterministic
 timezone-helper-shaped data.
 
