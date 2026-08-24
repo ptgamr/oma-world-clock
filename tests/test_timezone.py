@@ -66,6 +66,42 @@ class RenderTests(unittest.TestCase):
         self.assertEqual(before["new-york"]["utcOffsetMinutes"], -5 * 60)
         self.assertEqual(after["new-york"]["utcOffsetMinutes"], -4 * 60)
 
+    def test_calendar_strip_is_sunday_first_and_selects_home_date(self):
+        result = timezone.render_locations(
+            timestamp_ms(datetime(2026, 8, 23, 23, 46, tzinfo=UTC)), LOCATIONS
+        )
+        calendar = result["calendar"]
+        self.assertEqual(calendar["monthLabel"], "August 2026")
+        self.assertEqual(calendar["weekNumber"], 35)
+        self.assertEqual([day["date"] for day in calendar["days"]], [
+            "2026-08-23",
+            "2026-08-24",
+            "2026-08-25",
+            "2026-08-26",
+            "2026-08-27",
+            "2026-08-28",
+            "2026-08-29",
+        ])
+        self.assertEqual(calendar["days"][1]["weekday"], "Mon")
+        self.assertTrue(calendar["days"][1]["isSelected"])
+        self.assertEqual(calendar["days"][1]["offsetDays"], 0)
+
+    def test_calendar_strip_marks_days_outside_selected_month(self):
+        calendar = timezone.calendar_strip(datetime(2026, 1, 1).date())
+        self.assertEqual(calendar["monthLabel"], "January 2026")
+        self.assertEqual(calendar["days"][0]["date"], "2025-12-28")
+        self.assertTrue(calendar["days"][0]["isAdjacentMonth"])
+        self.assertTrue(calendar["days"][4]["isSelected"])
+
+    def test_render_includes_explicit_twelve_hour_time_and_period(self):
+        rows = self.rows_at(datetime(2026, 8, 24, 0, 46, tzinfo=UTC))
+        self.assertEqual(rows["home"]["time"], "12:46")
+        self.assertEqual(rows["home"]["time12"], "12:46")
+        self.assertEqual(rows["home"]["period"], "PM")
+        self.assertEqual(rows["london"]["time"], "01:46")
+        self.assertEqual(rows["london"]["time12"], "1:46")
+        self.assertEqual(rows["london"]["period"], "AM")
+
 
 class PlannerDateTests(unittest.TestCase):
     def test_calendar_day_shift_preserves_wall_time_across_dst(self):

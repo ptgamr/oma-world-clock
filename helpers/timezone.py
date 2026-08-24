@@ -32,6 +32,20 @@ MONTHS = (
     "Nov",
     "Dec",
 )
+MONTH_NAMES = (
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+)
 POPULAR_ZONES = (
     "Pacific/Auckland",
     "Australia/Sydney",
@@ -79,6 +93,32 @@ def day_relation(value: date, home_date: date) -> str:
     return date_label(value)
 
 
+def calendar_strip(selected_date: date) -> dict[str, Any]:
+    """Return the Sunday-first week containing the selected home date."""
+
+    sunday_offset = (selected_date.weekday() + 1) % 7
+    week_start = selected_date - timedelta(days=sunday_offset)
+    days = []
+    for offset in range(7):
+        value = week_start + timedelta(days=offset)
+        days.append(
+            {
+                "date": value.isoformat(),
+                "weekday": WEEKDAYS[value.weekday()],
+                "day": value.day,
+                "offsetDays": (value - selected_date).days,
+                "isSelected": value == selected_date,
+                "isAdjacentMonth": value.month != selected_date.month,
+            }
+        )
+
+    return {
+        "monthLabel": f"{MONTH_NAMES[selected_date.month - 1]} {selected_date.year}",
+        "weekNumber": selected_date.isocalendar().week,
+        "days": days,
+    }
+
+
 def render_locations(timestamp_ms: int | float, locations: list[dict[str, Any]]) -> dict[str, Any]:
     if not locations:
         raise InputError("At least one location is required")
@@ -94,6 +134,7 @@ def render_locations(timestamp_ms: int | float, locations: list[dict[str, Any]])
         zone_name = str(location.get("timezone", ""))
         local = instant.astimezone(zone(zone_name))
         local_offset = offset_minutes(local)
+        hour_12 = local.hour % 12 or 12
         rows.append(
             {
                 "id": str(location.get("id", "")),
@@ -103,6 +144,8 @@ def render_locations(timestamp_ms: int | float, locations: list[dict[str, Any]])
                 "date": local.date().isoformat(),
                 "dateLabel": date_label(local.date()),
                 "time": f"{local.hour:02d}:{local.minute:02d}",
+                "time12": f"{hour_12}:{local.minute:02d}",
+                "period": "AM" if local.hour < 12 else "PM",
                 "hour": local.hour,
                 "minute": local.minute,
                 "isWeekend": local.weekday() >= 5,
@@ -117,6 +160,7 @@ def render_locations(timestamp_ms: int | float, locations: list[dict[str, Any]])
         "timestampMs": round(float(timestamp_ms)),
         "homeDate": home_time.date().isoformat(),
         "homeDateLabel": date_label(home_time.date()),
+        "calendar": calendar_strip(home_time.date()),
         "rows": rows,
     }
 
