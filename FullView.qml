@@ -104,7 +104,7 @@ Item {
     title: "World Clock Planner"
     color: root.background
     implicitWidth: 1040
-    implicitHeight: 720
+    implicitHeight: 900
     minimumSize: Qt.size(760, 540)
 
     onVisibleChanged: {

@@ -18,7 +18,10 @@ BorderSurface {
   property var continents: []
   property string mapDataError: ""
 
-  implicitHeight: Style.space(268)
+  // Longitude spans twice the angular range of latitude. Keep the drawable
+  // area at 2:1 so the equirectangular projection is not vertically squashed.
+  implicitHeight: Style.space(24) + mapHeader.implicitHeight + Style.space(9)
+    + Math.max(1, width - Style.space(24)) / 2
   color: Style.normalFillFor(root.foreground, root.accent, root.urgent)
   borderSpec: Border.controlSpec("normal", root.foreground, root.accent)
 
@@ -94,7 +97,7 @@ BorderSurface {
       anchors.right: parent.right
       anchors.top: mapHeader.bottom
       anchors.topMargin: Style.space(9)
-      anchors.bottom: parent.bottom
+      height: width / 2
       clip: true
 
       Canvas {
