@@ -20,8 +20,12 @@ Panel {
   readonly property string helperPath: decodeURIComponent(
     String(Qt.resolvedUrl("helpers/timezone.py")).replace(/^file:\/\//, ""))
 
+  readonly property var configuredLocations: setting("locations", null)
+  readonly property bool hasConfiguredLocations: Array.isArray(configuredLocations)
+    && configuredLocations.length > 0
+  property var detectedDefaultLocations: Model.defaultLocations()
   readonly property var locations: Model.normalizeLocations(
-    setting("locations", Model.defaultLocations()))
+    hasConfiguredLocations ? configuredLocations : detectedDefaultLocations)
   readonly property var homeLocation: Model.homeLocation(locations)
   readonly property bool showTimezoneAbbreviation: setting("showTimezoneAbbreviation", true) !== false
   readonly property bool showRelativeOffset: setting("showRelativeOffset", true) !== false
@@ -128,6 +132,12 @@ Panel {
   function requestRender() {
     root.renderQueued = true
     if (!renderProcess.running) Qt.callLater(root.startRender)
+  }
+
+  function detectFirstRunTimezone() {
+    if (root.hasConfiguredLocations || defaultTimezoneProcess.running) return
+    defaultTimezoneProcess.command = ["python3", root.helperPath, "detect-timezone"]
+    defaultTimezoneProcess.running = true
   }
 
   function startRender() {
@@ -326,6 +336,7 @@ Panel {
 
   Component.onCompleted: {
     root.dayAnchorTimestamp = Date.now()
+    root.detectFirstRunTimezone()
     root.requestRender()
   }
 
@@ -343,6 +354,29 @@ Panel {
     id: secondsClock
     enabled: root.opened && root.showAnalogClock
     precision: SystemClock.Seconds
+  }
+
+  Process {
+    id: defaultTimezoneProcess
+    stdout: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: {
+        var raw = String(text || "").trim()
+        if (root.hasConfiguredLocations || raw === "") return
+        try {
+          var result = JSON.parse(raw)
+          if (!result.timezone) return
+          root.detectedDefaultLocations = Model.defaultLocations(result.timezone)
+          root.persistLocations(root.detectedDefaultLocations)
+        } catch (error) {
+          root.serviceError = "Could not detect the local timezone."
+        }
+      }
+    }
+    onExited: function(exitCode) {
+      if (exitCode !== 0 && !root.hasConfiguredLocations)
+        root.serviceError = "Could not detect the local timezone."
+    }
   }
 
   Process {

@@ -1,4 +1,5 @@
 import importlib.util
+import tempfile
 import unittest
 from datetime import UTC, datetime
 from pathlib import Path
@@ -129,6 +130,42 @@ class SearchTests(unittest.TestCase):
         zone_matches = timezone.search_zones("Asia/Kathmandu")
         self.assertEqual(city_matches[0]["timezone"], "America/New_York")
         self.assertEqual(zone_matches[0]["timezone"], "Asia/Kathmandu")
+
+
+class SystemTimezoneTests(unittest.TestCase):
+    def test_environment_timezone_takes_precedence(self):
+        detected = timezone.detect_system_timezone(environment={"TZ": "Europe/Paris"})
+        self.assertEqual(detected, "Europe/Paris")
+
+    def test_localtime_symlink_resolves_to_iana_key(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "zoneinfo"
+            target = root / "Pacific" / "Auckland"
+            target.parent.mkdir(parents=True)
+            target.touch()
+            localtime = Path(directory) / "localtime"
+            localtime.symlink_to(target)
+
+            detected = timezone.detect_system_timezone(
+                environment={},
+                localtime_path=localtime,
+                timezone_path=Path(directory) / "missing-timezone",
+                zoneinfo_roots=(root,),
+            )
+            self.assertEqual(detected, "Pacific/Auckland")
+
+    def test_timezone_file_is_used_when_localtime_is_not_a_symlink(self):
+        with tempfile.TemporaryDirectory() as directory:
+            timezone_file = Path(directory) / "timezone"
+            timezone_file.write_text("America/New_York\n")
+
+            detected = timezone.detect_system_timezone(
+                environment={},
+                localtime_path=Path(directory) / "missing-localtime",
+                timezone_path=timezone_file,
+                zoneinfo_roots=(),
+            )
+            self.assertEqual(detected, "America/New_York")
 
 
 if __name__ == "__main__":

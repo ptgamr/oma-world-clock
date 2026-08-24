@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
@@ -69,6 +70,12 @@ POPULAR_ZONES = (
     "America/Chicago",
     "America/Los_Angeles",
 )
+ZONEINFO_ROOTS = (
+    Path("/usr/share/zoneinfo"),
+    Path("/usr/lib/zoneinfo"),
+    Path("/usr/share/lib/zoneinfo"),
+    Path("/etc/zoneinfo"),
+)
 
 
 class InputError(ValueError):
@@ -80,6 +87,73 @@ def zone(zone_name: str) -> ZoneInfo:
         return ZoneInfo(zone_name)
     except ZoneInfoNotFoundError as error:
         raise InputError(f"Unknown timezone: {zone_name}") from error
+
+
+def valid_timezone_name(value: str | None) -> str | None:
+    """Return a usable IANA key, or None for paths and invalid values."""
+
+    candidate = str(value or "").strip()
+    if candidate.startswith(":"):
+        candidate = candidate[1:]
+    for prefix in ("/usr/share/zoneinfo/", "/usr/lib/zoneinfo/"):
+        if candidate.startswith(prefix):
+            candidate = candidate[len(prefix):]
+    for prefix in ("posix/", "right/"):
+        if candidate.startswith(prefix):
+            candidate = candidate[len(prefix):]
+    if not candidate or candidate.startswith("/") or ".." in candidate.split("/"):
+        return None
+    try:
+        ZoneInfo(candidate)
+    except (ZoneInfoNotFoundError, ValueError):
+        return None
+    return candidate
+
+
+def timezone_name_from_path(path: Path, zoneinfo_roots: tuple[Path, ...]) -> str | None:
+    """Resolve an /etc/localtime-style symlink back to its IANA key."""
+
+    try:
+        resolved = path.resolve(strict=True)
+    except (OSError, RuntimeError):
+        return None
+    for root in zoneinfo_roots:
+        try:
+            relative = resolved.relative_to(root.resolve())
+        except (OSError, ValueError):
+            continue
+        candidate = valid_timezone_name(relative.as_posix())
+        if candidate:
+            return candidate
+    return None
+
+
+def detect_system_timezone(
+    environment: dict[str, str] | None = None,
+    localtime_path: Path = Path("/etc/localtime"),
+    timezone_path: Path = Path("/etc/timezone"),
+    zoneinfo_roots: tuple[Path, ...] = ZONEINFO_ROOTS,
+) -> str:
+    """Detect the machine's IANA timezone without systemd or network access."""
+
+    active_environment = os.environ if environment is None else environment
+    environment_timezone = valid_timezone_name(active_environment.get("TZ"))
+    if environment_timezone:
+        return environment_timezone
+
+    linked_timezone = timezone_name_from_path(localtime_path, zoneinfo_roots)
+    if linked_timezone:
+        return linked_timezone
+
+    try:
+        configured_timezone = valid_timezone_name(timezone_path.read_text().splitlines()[0])
+    except (OSError, IndexError):
+        configured_timezone = None
+    if configured_timezone:
+        return configured_timezone
+
+    local_key = getattr(datetime.now().astimezone().tzinfo, "key", None)
+    return valid_timezone_name(local_key) or "Etc/UTC"
 
 
 def offset_minutes(value: datetime) -> int:
@@ -327,6 +401,7 @@ def build_parser() -> argparse.ArgumentParser:
     search = subparsers.add_parser("search", help="search the installed IANA timezone catalog")
     search.add_argument("query", nargs="?", default="")
     search.add_argument("--limit", type=int, default=8)
+    subparsers.add_parser("detect-timezone", help="detect the machine's IANA timezone")
     return parser
 
 
@@ -337,8 +412,10 @@ def main(argv: list[str] | None = None) -> int:
             result: Any = render_locations(args.timestamp_ms, parse_locations(args.locations_json))
         elif args.command == "shift-date":
             result = shift_date(args.timestamp_ms, args.timezone, args.days)
-        else:
+        elif args.command == "search":
             result = search_zones(args.query, args.limit)
+        else:
+            result = {"timezone": detect_system_timezone()}
         print(json.dumps(result, separators=(",", ":"), ensure_ascii=False))
         return 0
     except (InputError, ValueError, OverflowError) as error:
