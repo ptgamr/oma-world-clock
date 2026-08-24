@@ -200,10 +200,11 @@ function analogHourAngle(hour, minute) {
   return (((hours % 12) + 12) % 12 + (((minutes % 60) + 60) % 60) / 60) * 30
 }
 
-function metadataForRow(row, showAbbreviation, showDifference) {
+function metadataForRow(row, showAbbreviation, showDifference, showDayRelation) {
   if (!row) return ""
   var parts = []
-  if (!row.isHome && row.dayRelation && row.dayRelation !== "Today") parts.push(row.dayRelation)
+  if (showDayRelation !== false && !row.isHome
+      && row.dayRelation && row.dayRelation !== "Today") parts.push(row.dayRelation)
   if (!row.isHome && showDifference) {
     var difference = formatTimezoneDifference(row.offsetDifferenceMinutes)
     if (difference !== "") parts.push(difference)

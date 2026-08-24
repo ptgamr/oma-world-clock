@@ -98,6 +98,7 @@ class RenderTests(unittest.TestCase):
         self.assertEqual(rows["home"]["time"], "12:46")
         self.assertEqual(rows["home"]["time12"], "12:46")
         self.assertEqual(rows["home"]["period"], "PM")
+        self.assertEqual(rows["home"]["weekday"], "Monday")
         self.assertEqual(rows["london"]["time"], "01:46")
         self.assertEqual(rows["london"]["time12"], "1:46")
         self.assertEqual(rows["london"]["period"], "AM")

@@ -18,6 +18,15 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError, available_timezones
 
 
 WEEKDAYS = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+WEEKDAY_NAMES = (
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+)
 MONTHS = (
     "Jan",
     "Feb",
@@ -143,6 +152,7 @@ def render_locations(timestamp_ms: int | float, locations: list[dict[str, Any]])
                 "isHome": bool(location.get("isHome")),
                 "date": local.date().isoformat(),
                 "dateLabel": date_label(local.date()),
+                "weekday": WEEKDAY_NAMES[local.weekday()],
                 "time": f"{local.hour:02d}:{local.minute:02d}",
                 "time12": f"{hour_12}:{local.minute:02d}",
                 "period": "AM" if local.hour < 12 else "PM",

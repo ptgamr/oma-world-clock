@@ -55,4 +55,13 @@ assert.equal(Model.analogMinuteAngle(45), 270)
 assert.equal(Model.analogSecondAngle(37), 222)
 assert.equal(Model.analogHourAngle(3, 30), 105)
 
+const metadataRow = {
+  isHome: false,
+  dayRelation: "Yesterday",
+  offsetDifferenceMinutes: -300,
+  abbreviation: "CEST"
+}
+assert.equal(Model.metadataForRow(metadataRow, true, true), "Yesterday · −5h · CEST")
+assert.equal(Model.metadataForRow(metadataRow, true, true, false), "−5h · CEST")
+
 console.log("Model tests passed")
