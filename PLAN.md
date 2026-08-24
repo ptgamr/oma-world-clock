@@ -667,8 +667,8 @@ context and bottom controls visible with large location lists.
 
 The planning slider shares that fixed footer, spans 24 hours before and after
 Now in 15-minute steps, and uses a compact square thumb. Away from Now, a
-floating home-timezone date/time and offset label appears above the thumb
-without changing the panel height or pushing clock rows.
+floating home-timezone date/time and offset label appears below the slider in
+place of the shortcut guide, without covering or pushing clock rows.
 
 Starting Add temporarily replaces the clock list with a focused timezone search
 form while the slider and shortcut footer stay fixed. Completing or cancelling

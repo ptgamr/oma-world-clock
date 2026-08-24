@@ -113,8 +113,8 @@ locations the user has already configured.
 
 - Drag or scroll the fixed compact slider to move all clocks continuously in
   15-minute steps across a ±24-hour range. Its square thumb stays visible, and
-  moving away from Now shows the selected home date, time, and offset above the
-  track.
+  moving away from Now shows the selected home date, time, and offset below the
+  track in place of the shortcut guide.
 - Press Left/Right for 15 minutes; hold Shift for one hour.
 - Press `T` or right-click the slider to return to the live current instant.
 - Press `[` / `]` to move one calendar day; hold Shift to move one week.
@@ -136,8 +136,8 @@ locations the user has already configured.
 - Settings temporarily replaces the clocks with the appearance controls while
   the slider and shortcut footer stay fixed. Closing Settings restores the
   compact clock list.
-- The shortcut guide stays pinned below the scrollable content, including with
-  long lists of clocks.
+- At Now, the shortcut guide stays pinned below the scrollable content. Away
+  from Now, the selected-time tooltip replaces it without covering a clock row.
 - Only the clock list scrolls: the calendar and World Clock header stay fixed at
   the top while the slider and shortcut guide stay fixed at the bottom.
 - Press Escape to leave Settings first; press it again to close the panel.

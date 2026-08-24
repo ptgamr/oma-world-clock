@@ -597,7 +597,6 @@ Panel {
   function capturePreview() {
     root.previewStatus = "opening"
     if (!root.opened) root.open()
-    root.resetToNow()
     previewCaptureTimer.restart()
   }
 
@@ -1594,35 +1593,6 @@ Panel {
           readonly property real thumbCenterX: plannerSlider.x
             + plannerSlider.width * plannerSlider.progress
 
-          Rectangle {
-            id: plannerTooltip
-            visible: root.plannerOffsetMinutes !== 0
-              && root.plannerTooltipText !== ""
-            z: 3
-            x: Math.max(0, Math.min(parent.width - width,
-              plannerDock.thumbCenterX - width / 2))
-            y: -height - Style.space(5)
-            width: plannerTooltipText.implicitWidth + Style.space(14)
-            height: plannerTooltipText.implicitHeight + Style.space(8)
-            radius: Style.space(2)
-            color: Style.normalFillFor(
-              root.contentForeground, Color.accent, Color.urgent)
-            border.width: Style.spacing.hairline
-            border.color: Style.normalBorderFor(
-              root.contentForeground, Color.accent, Color.urgent)
-
-            Text {
-              id: plannerTooltipText
-              anchors.centerIn: parent
-              text: root.plannerTooltipText + " · "
-                + Model.formatDuration(root.plannerOffsetMinutes, true)
-              color: root.contentForeground
-              font.family: root.contentFontFamily
-              font.pixelSize: Style.font.bodySmall
-              font.bold: true
-            }
-          }
-
           Text {
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
@@ -1678,7 +1648,37 @@ Panel {
           }
         }
 
+        Rectangle {
+          id: plannerTooltip
+          visible: root.plannerOffsetMinutes !== 0
+            && root.plannerTooltipText !== ""
+          x: Math.max(0, Math.min(parent.width - width,
+            plannerDock.thumbCenterX - width / 2))
+          width: plannerTooltipText.implicitWidth + Style.space(14)
+          height: Math.max(plannerTooltipText.implicitHeight + Style.space(8),
+            shortcutText.implicitHeight)
+          radius: Style.space(2)
+          color: Style.normalFillFor(
+            root.contentForeground, Color.accent, Color.urgent)
+          border.width: Style.spacing.hairline
+          border.color: Style.normalBorderFor(
+            root.contentForeground, Color.accent, Color.urgent)
+
+          Text {
+            id: plannerTooltipText
+            anchors.centerIn: parent
+            text: root.plannerTooltipText + " · "
+              + Model.formatDuration(root.plannerOffsetMinutes, true)
+            color: root.contentForeground
+            font.family: root.contentFontFamily
+            font.pixelSize: Style.font.bodySmall
+            font.bold: true
+          }
+        }
+
         Text {
+          id: shortcutText
+          visible: root.plannerOffsetMinutes === 0
           width: parent.width
           horizontalAlignment: Text.AlignHCenter
           text: root.shortcutHint()
