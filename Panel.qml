@@ -27,7 +27,7 @@ Panel {
   readonly property bool showRelativeOffset: setting("showRelativeOffset", true) !== false
 
   property var renderedRows: []
-  property string homeDateLabel: "Loading…"
+  property var calendarData: ({ monthLabel: "Loading…", weekNumber: 0, days: [] })
   property string serviceError: ""
   property double dayAnchorTimestamp: Date.now()
   property int plannerOffsetMinutes: 0
@@ -336,7 +336,7 @@ Panel {
           if (Number(result.timestampMs) !== root.activeRenderTimestamp) return
           if (root.activeRenderTimestamp !== Math.round(root.planningTimestamp)) return
           root.renderedRows = result.rows || []
-          root.homeDateLabel = result.homeDateLabel || ""
+          root.calendarData = result.calendar || { monthLabel: "", weekNumber: 0, days: [] }
           root.serviceError = ""
         } catch (error) {
           root.serviceError = "Timezone conversion returned invalid data."
@@ -467,29 +467,168 @@ Panel {
 
           Item {
             width: parent.width
-            height: Math.max(titleBlock.implicitHeight, manageButton.implicitHeight)
+            height: Math.max(monthTitle.implicitHeight, calendarControls.implicitHeight)
 
-            Column {
-              id: titleBlock
+            Text {
+              id: monthTitle
               anchors.left: parent.left
               anchors.verticalCenter: parent.verticalCenter
-              spacing: Style.space(2)
+              text: root.calendarData.monthLabel || "Loading…"
+              color: root.contentForeground
+              font.family: root.contentFontFamily
+              font.pixelSize: Style.font.title
+              font.bold: true
+            }
 
-              Text {
-                text: "WORLD CLOCK"
-                color: root.contentForeground
-                font.family: root.contentFontFamily
-                font.pixelSize: Style.font.subtitle
-                font.bold: true
-                font.letterSpacing: 1
+            Row {
+              id: calendarControls
+              anchors.right: parent.right
+              anchors.verticalCenter: parent.verticalCenter
+              spacing: Style.space(3)
+
+              Button {
+                text: "‹"
+                enabled: !dateShiftProcess.running
+                opacity: enabled ? 1 : 0.35
+                foreground: root.contentForeground
+                fontFamily: root.contentFontFamily
+                fontSize: Style.font.title
+                horizontalPadding: Style.space(7)
+                verticalPadding: Style.space(3)
+                onClicked: root.shiftPlanningDate(-7)
               }
 
+              Button {
+                text: "Today"
+                selected: root.followingNow
+                foreground: root.contentForeground
+                fontFamily: root.contentFontFamily
+                fontSize: Style.font.bodySmall
+                horizontalPadding: Style.space(9)
+                verticalPadding: Style.space(5)
+                onClicked: root.resetToNow()
+              }
+
+              Button {
+                text: "›"
+                enabled: !dateShiftProcess.running
+                opacity: enabled ? 1 : 0.35
+                foreground: root.contentForeground
+                fontFamily: root.contentFontFamily
+                fontSize: Style.font.title
+                horizontalPadding: Style.space(7)
+                verticalPadding: Style.space(3)
+                onClicked: root.shiftPlanningDate(7)
+              }
+            }
+          }
+
+          Row {
+            id: calendarWeek
+            width: parent.width
+            height: Style.space(46)
+
+            Column {
+              width: Style.space(42)
+              anchors.verticalCenter: parent.verticalCenter
+              spacing: Style.space(3)
+
               Text {
-                text: "Find a meeting time that works for everyone"
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "CW"
                 color: Qt.darker(root.contentForeground, 1.5)
                 font.family: root.contentFontFamily
                 font.pixelSize: Style.font.bodySmall
               }
+
+              Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: String(root.calendarData.weekNumber || "")
+                color: Qt.darker(root.contentForeground, 1.5)
+                font.family: root.contentFontFamily
+                font.pixelSize: Style.font.bodySmall
+              }
+            }
+
+            Repeater {
+              model: root.calendarData.days || []
+
+              Item {
+                id: calendarDay
+                required property var modelData
+                width: (calendarWeek.width - Style.space(42)) / 7
+                height: calendarWeek.height
+
+                Column {
+                  anchors.centerIn: parent
+                  spacing: Style.space(3)
+
+                  Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: calendarDay.modelData.weekday
+                    color: calendarDay.modelData.isAdjacentMonth
+                      ? Qt.darker(root.contentForeground, 1.8)
+                      : Qt.darker(root.contentForeground, 1.35)
+                    font.family: root.contentFontFamily
+                    font.pixelSize: Style.font.bodySmall
+                  }
+
+                  Rectangle {
+                    width: Style.space(26)
+                    height: Style.space(24)
+                    radius: Style.cornerRadius
+                    color: calendarDay.modelData.isSelected ? Color.accent : "transparent"
+
+                    Text {
+                      anchors.centerIn: parent
+                      text: String(calendarDay.modelData.day)
+                      color: calendarDay.modelData.isSelected
+                        ? Color.popups.background
+                        : calendarDay.modelData.isAdjacentMonth
+                          ? Qt.darker(root.contentForeground, 1.8)
+                          : root.contentForeground
+                      font.family: root.contentFontFamily
+                      font.pixelSize: Style.font.body
+                      font.bold: calendarDay.modelData.isSelected
+                    }
+                  }
+                }
+
+                MouseArea {
+                  anchors.fill: parent
+                  enabled: !dateShiftProcess.running
+                  hoverEnabled: true
+                  cursorShape: Qt.PointingHandCursor
+                  onClicked: {
+                    if (calendarDay.modelData.offsetDays !== 0)
+                      root.shiftPlanningDate(calendarDay.modelData.offsetDays)
+                  }
+                }
+              }
+            }
+          }
+
+          Rectangle {
+            width: parent.width
+            height: Style.spacing.hairline
+            color: root.contentForeground
+            opacity: 0.14
+          }
+
+          Item {
+            width: parent.width
+            height: Math.max(worldClockTitle.implicitHeight, manageButton.implicitHeight)
+
+            Text {
+              id: worldClockTitle
+              anchors.left: parent.left
+              anchors.verticalCenter: parent.verticalCenter
+              text: "WORLD CLOCK"
+              color: root.contentForeground
+              font.family: root.contentFontFamily
+              font.pixelSize: Style.font.subtitle
+              font.bold: true
+              font.letterSpacing: 1
             }
 
             Button {
@@ -600,13 +739,27 @@ Panel {
                       anchors.verticalCenter: parent.verticalCenter
                       spacing: Style.space(1)
 
-                      Text {
+                      Row {
                         anchors.right: parent.right
-                        text: clockCard.rendered ? clockCard.rendered.time : "--:--"
-                        color: root.contentForeground
-                        font.family: root.contentFontFamily
-                        font.pixelSize: Style.font.title
-                        font.bold: true
+                        spacing: Style.space(4)
+
+                        Text {
+                          id: localTimeText
+                          text: clockCard.rendered ? clockCard.rendered.time12 : "--:--"
+                          color: root.contentForeground
+                          font.family: root.contentFontFamily
+                          font.pixelSize: Style.font.title
+                          font.bold: true
+                        }
+
+                        Text {
+                          anchors.baseline: localTimeText.baseline
+                          text: clockCard.rendered ? clockCard.rendered.period : ""
+                          color: root.contentForeground
+                          font.family: root.contentFontFamily
+                          font.pixelSize: Style.font.bodySmall
+                          font.bold: true
+                        }
                       }
 
                       Text {
@@ -693,65 +846,6 @@ Panel {
             height: Style.spacing.hairline
             color: root.contentForeground
             opacity: 0.14
-          }
-
-          Item {
-            width: parent.width
-            height: Math.max(dateRow.implicitHeight, nowButton.implicitHeight)
-
-            Row {
-              id: dateRow
-              anchors.left: parent.left
-              anchors.verticalCenter: parent.verticalCenter
-              spacing: Style.space(5)
-
-              Button {
-                text: "‹"
-                enabled: !dateShiftProcess.running
-                opacity: enabled ? 1 : 0.35
-                foreground: root.contentForeground
-                fontFamily: root.contentFontFamily
-                fontSize: Style.font.title
-                horizontalPadding: Style.space(7)
-                verticalPadding: Style.space(3)
-                onClicked: root.shiftPlanningDate(-1)
-              }
-
-              Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: root.homeDateLabel
-                color: root.contentForeground
-                font.family: root.contentFontFamily
-                font.pixelSize: Style.font.body
-                font.bold: true
-              }
-
-              Button {
-                text: "›"
-                enabled: !dateShiftProcess.running
-                opacity: enabled ? 1 : 0.35
-                foreground: root.contentForeground
-                fontFamily: root.contentFontFamily
-                fontSize: Style.font.title
-                horizontalPadding: Style.space(7)
-                verticalPadding: Style.space(3)
-                onClicked: root.shiftPlanningDate(1)
-              }
-            }
-
-            Button {
-              id: nowButton
-              anchors.right: parent.right
-              anchors.verticalCenter: parent.verticalCenter
-              text: "NOW"
-              selected: root.followingNow
-              foreground: root.contentForeground
-              fontFamily: root.contentFontFamily
-              fontSize: Style.font.bodySmall
-              horizontalPadding: Style.space(10)
-              verticalPadding: Style.space(5)
-              onClicked: root.resetToNow()
-            }
           }
 
           Item {
