@@ -1527,7 +1527,7 @@ Panel {
                   id: nameField
                   width: (addContent.width - Style.space(6)) * 0.42
                   foreground: root.contentForeground
-                  placeholderText: "Name or person"
+                  placeholderText: "Alias"
                   Keys.onPressed: function(event) {
                     if (event.key === Qt.Key_Escape) {
                       root.cancelEditors()
