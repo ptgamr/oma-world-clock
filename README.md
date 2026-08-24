@@ -10,18 +10,13 @@ It works alongside the built-in `omarchy.clock`; it does not replace it.
 
 ## Features
 
-- [x] Multiple named IANA timezones with one clearly marked Home location
-- [x] Smart three-region defaults based on the machine's local timezone
-- [x] DST-correct time conversion and local calendar dates
-- [x] Fixed calendar header and fixed ±24-hour slider around a scrollable clock list
-- [x] Responsive 15-minute slider steps with keyboard and mouse control
-- [x] 12- and 24-hour digital time with clear AM/PM in 12-hour mode
-- [x] Optional analog faces with day/night styling and a live red seconds hand
-- [x] Add, rename, remove, reorder, and set Home without a separate manage mode
-- [x] Keyboard navigation for clocks, settings, and all clock-management actions
-- [x] Drag-and-drop clock reordering with animated row movement
-- [x] Local timezone search using the installed system timezone database
-- [x] Plugin-owned configuration in the World Clock entry of `shell.json`
+- Keep track of multiple clocks around the world
+- Choose between analog and digital clocks
+- Plan across dates and times with the calendar and time slider
+- Start quickly with smart clock suggestions based on your location
+- Add, rename, remove, reorder, and choose your Home clock
+- Use the entire panel with the keyboard or mouse
+- Choose between 12- and 24-hour time
 
 ## Requirements
 
