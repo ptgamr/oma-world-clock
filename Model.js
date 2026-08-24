@@ -2,10 +2,10 @@
 // file free of Qt APIs so the important behavior can also be tested with Node.
 
 var DEFAULT_LOCATIONS = [
-  { id: "home", name: "Wellington", timezone: "Pacific/Auckland", isHome: true },
+  { id: "wellington", name: "Wellington", timezone: "Pacific/Auckland", isHome: false },
   { id: "london", name: "London", timezone: "Europe/London", isHome: false },
   { id: "new-york", name: "New York", timezone: "America/New_York", isHome: false },
-  { id: "ho-chi-minh", name: "Ho Chi Minh", timezone: "Asia/Ho_Chi_Minh", isHome: false },
+  { id: "home", name: "Ho Chi Minh", timezone: "Asia/Ho_Chi_Minh", isHome: true },
   { id: "berlin", name: "Berlin", timezone: "Europe/Berlin", isHome: false },
   { id: "hanoi", name: "Hanoi", timezone: "Asia/Ho_Chi_Minh", isHome: false },
   { id: "pacific-time", name: "Pacific Time", timezone: "America/Los_Angeles", isHome: false }

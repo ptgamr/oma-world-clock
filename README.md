@@ -47,7 +47,8 @@ omarchy bar move io.github.ptgamr.world-clock --section right
 
 Click the world-clock count in the bar to open the planner. The initial set
 contains Wellington, London, New York, Ho Chi Minh, Berlin, Hanoi, and Pacific
-Time (`America/Los_Angeles`, so it follows PST/PDT automatically).
+Time (`America/Los_Angeles`, so it follows PST/PDT automatically). Ho Chi Minh
+is the default home location.
 
 - Drag or scroll the slider to move all clocks in 15-minute steps.
 - Press Left/Right for 15 minutes; hold Shift for one hour.
@@ -55,7 +56,7 @@ Time (`America/Los_Angeles`, so it follows PST/PDT automatically).
 - Click a day in the calendar strip to plan on that home-timezone date.
 - Use the calendar arrows to move one week at a time, or click `Today` to return.
 - Click `Manage` to rename, reorder, remove, or change the home location.
-- To make Ho Chi Minh home, click `Manage`, click `Home` on its row, then click `Done`.
+- To change the home location later, click `Manage`, click `Home` on its row, then click `Done`.
 - Click `Add location` and search by a city such as `London` or an IANA ID such as `Europe/London`.
 
 Green/theme-accent `WORK` means Monday-Friday 09:00-17:00, `EDGE` means 07:00-09:00 or 17:00-20:00, and `OFF` covers nights and weekends.
@@ -100,8 +101,8 @@ Locations are written into this widget's own entry in `~/.config/omarchy/shell.j
   "locations": [
     {
       "id": "home",
-      "name": "Wellington",
-      "timezone": "Pacific/Auckland",
+      "name": "Ho Chi Minh",
+      "timezone": "Asia/Ho_Chi_Minh",
       "isHome": true
     }
   ]
