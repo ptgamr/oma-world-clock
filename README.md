@@ -96,7 +96,7 @@ omarchy bar move io.github.ptgamr.world-clock --section right
 
 ## Use
 
-Click the world-clock count in the bar to open the planner. On first run the
+Click the world-clock icon in the bar to open the planner. On first run the
 plugin detects the machine's IANA timezone, puts it first as `HOME`, and adds
 two representative clocks from other regions:
 
@@ -111,9 +111,16 @@ This produces three clocks in three different regions. The result is saved as
 normal location configuration, so detection runs only once and never replaces
 locations the user has already configured.
 
-- Drag or scroll the slider to move all clocks in 15-minute steps.
+- Drag or scroll the slider to move all clocks continuously in 15-minute steps.
 - Press Left/Right for 15 minutes; hold Shift for one hour.
 - Press `T` or click `NOW` to return to the live current instant.
+- Press `j`/`k` (or Down/Up) to select a clock. The first key press selects
+  the first/last row.
+- Press `Shift+j` / `Shift+k` to move the selected clock down/up, or drag any
+  clock row to reorder it.
+- Press `h` to make the selected clock the Home location.
+- Press `m` to open or close Manage, and `s` to open or close Settings.
+- Press Escape to leave Manage/Settings first; press it again to close the panel.
 - Click a day in the calendar strip to plan on that home-timezone date.
 - Use the calendar arrows to move one week at a time, or click `Today` to return.
 - Click `Manage` to rename, reorder, remove, or change the home location.
