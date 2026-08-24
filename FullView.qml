@@ -16,6 +16,8 @@ Item {
   property var shell: null
   property var service: null
   property bool closingFromHost: false
+  property string previewPath: "/tmp/omarchy-world-clock-full-preview.png"
+  property string previewStatus: "idle"
   readonly property bool opened: window.visible
 
   readonly property color foreground: Color.foreground
@@ -52,6 +54,13 @@ Item {
     window.visible = true
     if (root.service) root.service.requestRender()
     if (root.service) root.service.centerTimelineOnSelection()
+    if (payloadJson) {
+      try {
+        var payload = JSON.parse(String(payloadJson))
+        if (payload && payload.capturePreview === true)
+          Qt.callLater(root.capturePreview)
+      } catch (error) { /* Ignore malformed optional panel payloads. */ }
+    }
     Qt.callLater(function() { keyCatcher.forceActiveFocus() })
   }
 
@@ -64,6 +73,29 @@ Item {
   function requestClose() {
     if (root.shell && typeof root.shell.hide === "function") root.shell.hide(root.moduleName)
     else window.visible = false
+  }
+
+  function capturePreview() {
+    if (!root.opened) root.open("{}")
+    previewCaptureTimer.restart()
+  }
+
+  function writePreview() {
+    var previewWidth = Math.max(1, Math.ceil(document.width))
+    var previewHeight = Math.max(1, Math.ceil(document.height))
+    root.previewStatus = "capturing " + previewWidth + "x" + previewHeight
+    document.grabToImage(function(result) {
+      if (!result || !result.saveToFile(root.previewPath))
+        root.previewStatus = "save failed"
+      else
+        root.previewStatus = "saved " + root.previewPath
+    }, Qt.size(previewWidth, previewHeight))
+  }
+
+  Timer {
+    id: previewCaptureTimer
+    interval: 700
+    onTriggered: root.writePreview()
   }
 
   FloatingWindow {
@@ -93,8 +125,16 @@ Item {
         QQC.ScrollBar.horizontal.policy: QQC.ScrollBar.AlwaysOff
 
         Item {
+          id: document
           width: scrollArea.availableWidth
           implicitHeight: content.implicitHeight + Style.space(36)
+          height: implicitHeight
+
+          Rectangle {
+            anchors.fill: parent
+            color: root.background
+            z: -1
+          }
 
           PanelKeyCatcher {
             id: keyCatcher
@@ -201,13 +241,26 @@ Item {
                           font.bold: true
                         }
 
-                        Text {
+                        Rectangle {
                           visible: modelData.isHome
-                          text: "HOME"
-                          color: root.accent
-                          font.family: root.fontFamily
-                          font.pixelSize: Style.font.bodySmall
-                          font.bold: true
+                          width: fullHomeBadge.implicitWidth + Style.space(10)
+                          height: fullHomeBadge.implicitHeight + Style.space(5)
+                          radius: Style.space(2)
+                          color: Style.normalFillFor(root.foreground, root.accent, root.urgent)
+                          border.width: Style.spacing.hairline
+                          border.color: Style.normalBorderFor(
+                            root.foreground, root.accent, root.urgent)
+
+                          Text {
+                            id: fullHomeBadge
+                            anchors.centerIn: parent
+                            text: "HOME"
+                            color: root.foreground
+                            font.family: root.fontFamily
+                            font.pixelSize: Style.font.bodySmall
+                            font.bold: true
+                            font.letterSpacing: 1
+                          }
                         }
                       }
 
