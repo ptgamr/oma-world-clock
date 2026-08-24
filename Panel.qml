@@ -102,9 +102,16 @@ Panel {
   readonly property bool previewCaptureRequested: setting("_capturePreview", false) === true
   property string previewStatus: "idle"
 
+  function resetLocationHover() {
+    root.selectedIndex = -1
+    root.cursorActive = false
+    root.locationHoverSuppressed = true
+    root.lastLocationPointer = Qt.point(Number.NaN, Number.NaN)
+  }
+
   function open() {
-    if (root.followingNow) root.resetToNow()
-    else root.requestRender()
+    root.resetToNow()
+    root.resetLocationHover()
     root.controller.show()
     Qt.callLater(function() {
       if (root.opened) root.setCenterHoverRevealSuppressed(true)
@@ -212,6 +219,12 @@ Panel {
 
   function trackLocationPointer(position) {
     if (!position) return false
+    var hasPreviousPosition = isFinite(Number(root.lastLocationPointer.x))
+      && isFinite(Number(root.lastLocationPointer.y))
+    if (!hasPreviousPosition) {
+      root.lastLocationPointer = Qt.point(position.x, position.y)
+      return false
+    }
     var moved = Model.pointerMoved(
       root.lastLocationPointer.x, root.lastLocationPointer.y,
       position.x, position.y, root.pointerMovementThreshold)
