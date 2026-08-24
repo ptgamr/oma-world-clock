@@ -136,9 +136,17 @@ assert.equal(previewRows[1].time, "16:00")
 assert.equal(previewRows[1].dayRelation, "Yesterday")
 
 assert.equal(Model.clampPlannerMinutes(22), 15)
-assert.equal(Model.clampPlannerMinutes(999), 720)
+assert.equal(Model.clampPlannerMinutes(999), 1005)
+assert.equal(Model.clampPlannerMinutes(9999), 1440)
+assert.equal(Model.clampPlannerMinutes(-9999), -1440)
 assert.equal(Model.planningLabel(0, true), "NOW")
 assert.equal(Model.planningLabel(195, false), "+3h 15m")
+assert.equal(Model.plannerTooltipLabel({
+  date: "2026-08-25", weekday: "Tuesday", time: "15:15", time12: "3:15", period: "PM"
+}, "12"), "Tue Aug 25 3:15 PM")
+assert.equal(Model.plannerTooltipLabel({
+  date: "2026-08-25", weekday: "Tuesday", time: "15:15", time12: "3:15", period: "PM"
+}, "24"), "Tue Aug 25 15:15")
 assert.equal(Model.formatTimezoneDifference(-690), "−11h 30m")
 
 assert.deepEqual(Model.availability(10, 0, false), { key: "work", label: "WORK" })

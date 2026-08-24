@@ -361,8 +361,7 @@ Proposed initial panel:
 ├──────────────────────────────────────────┤
 │ Mon 24 Aug 2026                         │
 │                                          │
-│ -12h ───────────●────────────── +12h    │
-│                 NOW                     │
+│ -24h ───────────■────────────── +24h    │
 │                                          │
 │              + Add location             │
 └──────────────────────────────────────────┘
@@ -453,8 +452,7 @@ The planner is the main feature.
 Initial state:
 
 ```text
--12h ───────────●────────── +12h
-                NOW
+-24h ───────────■────────── +24h
 ```
 
 Dragging changes the common planning instant.
@@ -663,12 +661,18 @@ The shortcut guide is a fixed footer outside the scrollable clock content, so
 it remains visible for long location lists and while the selected row is
 auto-scrolled into view.
 
-Starting Add temporarily replaces the clock list and timeline controls with a
-focused timezone search form. Completing or cancelling Add restores the clocks.
+The planning slider shares that fixed footer, spans 24 hours before and after
+Now in 15-minute steps, and uses a compact square thumb. Away from Now, a
+floating home-timezone date/time and offset label appears above the thumb
+without changing the panel height or pushing clock rows.
+
+Starting Add temporarily replaces the clock list with a focused timezone search
+form while the slider and shortcut footer stay fixed. Completing or cancelling
+Add restores the clocks.
 
 Settings follows the same focused-state layout: appearance controls replace the
-clock list and timeline until Settings is closed, avoiding an inline section
-that pushes clock rows down.
+clock list until Settings is closed, while the slider and shortcut footer stay
+fixed and nothing pushes clock rows down.
 
 Search:
 
@@ -995,7 +999,7 @@ Add:
 
 - canonical planning instant
 - slider
-- ±12-hour visible range
+- ±24-hour visible range
 - 15-minute snapping
 - keyboard controls
 - offset display

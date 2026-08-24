@@ -53,6 +53,11 @@ Panel {
   readonly property int plannerOffsetMinutes: service ? service.plannerOffsetMinutes : 0
   readonly property bool followingNow: service ? service.followingNow : true
   readonly property double planningTimestamp: service ? service.planningTimestamp : Date.now()
+  readonly property var homeRenderedRow: homeLocation
+    ? root.renderedRow(homeLocation.id)
+    : null
+  readonly property string plannerTooltipText: Model.plannerTooltipLabel(
+    homeRenderedRow, hourFormat)
   readonly property bool dateShiftBusy: service ? service.dateShiftBusy : false
   readonly property int displaySecond: followingNow
     ? secondsClock.seconds
@@ -320,7 +325,7 @@ Panel {
       return "Type a new name · Enter save · Esc cancel"
     if (root.showingSettings)
       return "j/k · ←/→ change · Enter apply · a analog · 1/2 format · s done"
-    return "j/k select · J/K move · A add · R rename · D delete · H home · S settings"
+    return "j/k select · J/K move · A add · R rename · D delete · H home · S settings · T now"
   }
 
   function clockRowStep(index) {
@@ -1314,68 +1319,6 @@ Panel {
           }
 
           Rectangle {
-            visible: root.showingClockContent
-            width: parent.width
-            height: Style.spacing.hairline
-            color: root.contentForeground
-            opacity: 0.14
-          }
-
-          Item {
-            visible: root.showingClockContent
-            width: parent.width
-            height: plannerSlider.implicitHeight
-
-            Text {
-              anchors.left: parent.left
-              anchors.verticalCenter: parent.verticalCenter
-              text: "−12h"
-              color: Qt.darker(root.contentForeground, 1.5)
-              font.family: root.contentFontFamily
-              font.pixelSize: Style.font.bodySmall
-            }
-
-            PanelSlider {
-              id: plannerSlider
-              anchors.left: parent.left
-              anchors.right: parent.right
-              anchors.leftMargin: Style.space(42)
-              anchors.rightMargin: Style.space(42)
-              anchors.verticalCenter: parent.verticalCenter
-              bar: root.bar
-              minimum: -48
-              maximum: 48
-              value: root.plannerOffsetMinutes / 15
-              step: 1
-              integer: true
-              tickCount: 9
-              onMoved: function(next) { root.setPlannerOffset(Math.round(next) * 15) }
-              onReleased: function(next) { root.setPlannerOffset(Math.round(next) * 15) }
-              onRightClicked: root.resetToNow()
-            }
-
-            Text {
-              anchors.right: parent.right
-              anchors.verticalCenter: parent.verticalCenter
-              text: "+12h"
-              color: Qt.darker(root.contentForeground, 1.5)
-              font.family: root.contentFontFamily
-              font.pixelSize: Style.font.bodySmall
-            }
-          }
-
-          Text {
-            visible: root.showingClockContent
-            width: parent.width
-            horizontalAlignment: Text.AlignHCenter
-            text: Model.planningLabel(root.plannerOffsetMinutes, root.followingNow)
-            color: root.contentForeground
-            font.family: root.contentFontFamily
-            font.pixelSize: Style.font.subtitle
-            font.bold: true
-          }
-
-          Rectangle {
             id: renameEditor
             visible: root.renamingId !== ""
             width: parent.width
@@ -1630,6 +1573,97 @@ Panel {
           height: Style.spacing.hairline
           color: root.contentForeground
           opacity: 0.14
+        }
+
+        Item {
+          id: plannerDock
+          width: parent.width
+          height: Style.space(24)
+          readonly property real thumbCenterX: plannerSlider.x
+            + plannerSlider.width * plannerSlider.progress
+
+          Rectangle {
+            id: plannerTooltip
+            visible: root.plannerOffsetMinutes !== 0
+              && root.plannerTooltipText !== ""
+            z: 3
+            x: Math.max(0, Math.min(parent.width - width,
+              plannerDock.thumbCenterX - width / 2))
+            y: -height - Style.space(5)
+            width: plannerTooltipText.implicitWidth + Style.space(14)
+            height: plannerTooltipText.implicitHeight + Style.space(8)
+            radius: Style.space(2)
+            color: Style.normalFillFor(
+              root.contentForeground, Color.accent, Color.urgent)
+            border.width: Style.spacing.hairline
+            border.color: Style.normalBorderFor(
+              root.contentForeground, Color.accent, Color.urgent)
+
+            Text {
+              id: plannerTooltipText
+              anchors.centerIn: parent
+              text: root.plannerTooltipText + " · "
+                + Model.formatDuration(root.plannerOffsetMinutes, true)
+              color: root.contentForeground
+              font.family: root.contentFontFamily
+              font.pixelSize: Style.font.bodySmall
+              font.bold: true
+            }
+          }
+
+          Text {
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            text: "−24h"
+            color: Qt.darker(root.contentForeground, 1.5)
+            font.family: root.contentFontFamily
+            font.pixelSize: Style.font.bodySmall
+          }
+
+          PanelSlider {
+            id: plannerSlider
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: Style.space(42)
+            anchors.rightMargin: Style.space(42)
+            anchors.verticalCenter: parent.verticalCenter
+            height: Style.space(18)
+            bar: root.bar
+            minimum: -96
+            maximum: 96
+            value: root.plannerOffsetMinutes / 15
+            step: 1
+            integer: true
+            tickCount: 9
+            trackHeight: Style.space(3)
+            knobSize: 0
+            fillColor: trackColor
+            onMoved: function(next) { root.setPlannerOffset(Math.round(next) * 15) }
+            onReleased: function(next) { root.setPlannerOffset(Math.round(next) * 15) }
+            onRightClicked: root.resetToNow()
+          }
+
+          Rectangle {
+            width: Style.space(10)
+            height: width
+            radius: 0
+            x: Math.max(plannerSlider.x, Math.min(
+              plannerSlider.x + plannerSlider.width - width,
+              plannerDock.thumbCenterX - width / 2))
+            anchors.verticalCenter: plannerSlider.verticalCenter
+            color: root.contentForeground
+            border.width: Style.spacing.hairline
+            border.color: Color.popups.background
+          }
+
+          Text {
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            text: "+24h"
+            color: Qt.darker(root.contentForeground, 1.5)
+            font.family: root.contentFontFamily
+            font.pixelSize: Style.font.bodySmall
+          }
         }
 
         Text {

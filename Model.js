@@ -334,7 +334,7 @@ function previewRenderedRows(rows, renderedTimestamp, planningTimestamp) {
 function clampPlannerMinutes(value) {
   var minutes = Math.round(Number(value) / 15) * 15
   if (!isFinite(minutes)) return 0
-  return Math.max(-720, Math.min(720, minutes))
+  return Math.max(-1440, Math.min(1440, minutes))
 }
 
 function formatDuration(minutes, includePlus) {
@@ -351,6 +351,21 @@ function formatDuration(minutes, includePlus) {
 
 function planningLabel(offsetMinutes, followingNow) {
   return followingNow ? "NOW" : formatDuration(offsetMinutes, true)
+}
+
+function plannerTooltipLabel(row, hourFormat) {
+  if (!row) return ""
+  var weekday = cleanText(row.weekday).slice(0, 3)
+  var date = /^(\d{4})-(\d{2})-(\d{2})$/.exec(cleanText(row.date))
+  var dateLabel = weekday
+  if (date) {
+    var month = MONTH_SHORT_NAMES[Math.max(0, Math.min(11, Number(date[2]) - 1))]
+    dateLabel = [weekday, month, String(Number(date[3]))].filter(Boolean).join(" ")
+  }
+  var time = hourFormat === "24"
+    ? cleanText(row.time)
+    : [cleanText(row.time12), cleanText(row.period)].filter(Boolean).join(" ")
+  return [dateLabel, time].filter(Boolean).join(" ")
 }
 
 function formatTimezoneDifference(minutes) {
@@ -426,6 +441,7 @@ if (typeof module !== "undefined") {
     clampPlannerMinutes: clampPlannerMinutes,
     formatDuration: formatDuration,
     planningLabel: planningLabel,
+    plannerTooltipLabel: plannerTooltipLabel,
     formatTimezoneDifference: formatTimezoneDifference,
     availability: availability,
     isDaytime: isDaytime,

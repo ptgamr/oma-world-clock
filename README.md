@@ -53,7 +53,7 @@ Version 0.1 includes:
 - multiple named IANA timezones with one home location
 - three-continent first-run defaults based on the machine's local timezone
 - DST-correct conversion for the selected instant
-- a ±12 hour planner with 15-minute snapping
+- a fixed ±24 hour slider with 15-minute snapping
 - local-calendar date navigation that remains correct across DST changes
 - aligned analog faces with light/day, dark/night dials and a live red seconds hand
 - full local weekdays and aligned timezone details beneath each digital clock
@@ -111,9 +111,12 @@ This produces three clocks in three different regions. The result is saved as
 normal location configuration, so detection runs only once and never replaces
 locations the user has already configured.
 
-- Drag or scroll the slider to move all clocks continuously in 15-minute steps.
+- Drag or scroll the fixed compact slider to move all clocks continuously in
+  15-minute steps across a ±24-hour range. Its square thumb stays visible, and
+  moving away from Now shows the selected home date, time, and offset above the
+  track.
 - Press Left/Right for 15 minutes; hold Shift for one hour.
-- Press `T` or click `NOW` to return to the live current instant.
+- Press `T` or right-click the slider to return to the live current instant.
 - Press `[` / `]` to move one calendar day; hold Shift to move one week.
 - Press `j`/`k` (or Down/Up) to select a clock. The first key press selects
   the first/last row, and the panel scrolls to keep it visible. Home/End select
@@ -124,14 +127,15 @@ locations the user has already configured.
 - Press `a` to add a clock, `r` to rename the selected clock, and `d` or Delete
   to remove the selected clock. These actions work directly; there is no
   separate management mode.
-- Add temporarily replaces the clocks and timeline controls with the timezone
-  search form. Its optional Alias changes the displayed clock name. Adding or
-  cancelling restores the compact clock list.
+- Add temporarily replaces the clocks with the timezone search form while the
+  slider and shortcut footer stay fixed. Its optional Alias changes the
+  displayed clock name. Adding or cancelling restores the compact clock list.
 - Press `s` to open Settings. Use `j`/`k` to select a setting, Left/Right to
   change it, and Enter/Space to apply it. `a` toggles analog clocks; `1` and
   `2` select 12- and 24-hour formats directly.
-- Settings temporarily replaces the clocks and timeline controls with the
-  appearance controls. Closing Settings restores the compact clock list.
+- Settings temporarily replaces the clocks with the appearance controls while
+  the slider and shortcut footer stay fixed. Closing Settings restores the
+  compact clock list.
 - The shortcut guide stays pinned below the scrollable content, including with
   long lists of clocks.
 - Press Escape to leave Settings first; press it again to close the panel.
