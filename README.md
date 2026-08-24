@@ -46,7 +46,8 @@ Time (`America/Los_Angeles`, so it follows PST/PDT automatically).
 - Drag or scroll the slider to move all clocks in 15-minute steps.
 - Press Left/Right for 15 minutes; hold Shift for one hour.
 - Press `T` or click `NOW` to return to the live current instant.
-- Use the date arrows to plan on another local calendar date in the home timezone.
+- Click a day in the calendar strip to plan on that home-timezone date.
+- Use the calendar arrows to move one week at a time, or click `Today` to return.
 - Click `Manage` to rename, reorder, remove, or change the home location.
 - Click `Add location` and search by a city such as `London` or an IANA ID such as `Europe/London`.
 
