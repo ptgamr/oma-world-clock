@@ -1561,10 +1561,11 @@ Panel {
 
         Rectangle {
           width: parent.width
-          height: Math.max(Style.space(24),
-            parent.height * Math.min(1, scroll.visibleArea.heightRatio))
-          y: Math.min(parent.height - height,
-            parent.height * Math.max(0, scroll.visibleArea.yPosition))
+          height: Math.max(Style.space(24), Math.min(Style.space(72),
+            parent.height * Math.min(1, scroll.visibleArea.heightRatio)))
+          y: (parent.height - height) * Math.min(1, Math.max(0,
+            scroll.visibleArea.yPosition
+              / Math.max(0.001, 1 - scroll.visibleArea.heightRatio)))
           color: Color.accent
           opacity: 0.8
         }
