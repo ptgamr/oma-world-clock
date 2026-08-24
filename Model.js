@@ -174,6 +174,26 @@ function availability(hour, minute, isWeekend) {
   return { key: "off", label: "OFF" }
 }
 
+function isDaytime(hour) {
+  var value = Math.floor(Number(hour))
+  if (!isFinite(value)) return false
+  return value >= 7 && value < 19
+}
+
+function analogMinuteAngle(minute) {
+  var value = Number(minute)
+  if (!isFinite(value)) value = 0
+  return ((value % 60) + 60) % 60 * 6
+}
+
+function analogHourAngle(hour, minute) {
+  var hours = Number(hour)
+  var minutes = Number(minute)
+  if (!isFinite(hours)) hours = 0
+  if (!isFinite(minutes)) minutes = 0
+  return (((hours % 12) + 12) % 12 + (((minutes % 60) + 60) % 60) / 60) * 30
+}
+
 function metadataForRow(row, showAbbreviation, showDifference) {
   if (!row) return ""
   var parts = []
@@ -201,6 +221,9 @@ if (typeof module !== "undefined") {
     planningLabel: planningLabel,
     formatTimezoneDifference: formatTimezoneDifference,
     availability: availability,
+    isDaytime: isDaytime,
+    analogMinuteAngle: analogMinuteAngle,
+    analogHourAngle: analogHourAngle,
     metadataForRow: metadataForRow
   }
 }

@@ -689,13 +689,15 @@ Panel {
 
                   Item {
                     width: parent.width
-                    height: Math.max(locationBlock.implicitHeight, timeBlock.implicitHeight)
+                    height: Math.max(analogClock.implicitHeight,
+                      locationBlock.implicitHeight, timeBlock.implicitHeight)
 
                     Column {
                       id: locationBlock
                       anchors.left: parent.left
-                      anchors.right: timeBlock.left
-                      anchors.rightMargin: Style.space(16)
+                      anchors.right: analogClock.left
+                      anchors.rightMargin: Style.space(12)
+                      anchors.verticalCenter: parent.verticalCenter
                       spacing: Style.space(2)
 
                       Row {
@@ -731,6 +733,19 @@ Panel {
                         font.pixelSize: Style.font.bodySmall
                         elide: Text.ElideRight
                       }
+                    }
+
+                    AnalogClock {
+                      id: analogClock
+                      anchors.right: timeBlock.left
+                      anchors.rightMargin: Style.space(18)
+                      anchors.verticalCenter: parent.verticalCenter
+                      hour: clockCard.rendered ? clockCard.rendered.hour : 0
+                      minute: clockCard.rendered ? clockCard.rendered.minute : 0
+                      foreground: root.contentForeground
+                      background: Color.popups.background
+                      accent: Color.accent
+                      opacity: clockCard.rendered ? 1 : 0.4
                     }
 
                     Column {
