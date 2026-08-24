@@ -85,11 +85,12 @@ BarWidget {
     }
   }
 
-  WidgetButton {
+  BarIconButton {
     id: button
     anchors.fill: parent
     bar: root.bar
     text: "󰥔"
+    fontSize: Style.bar.iconFont + Style.space(2)
     tooltipText: "Open World Clock"
     onPressed: function(buttonCode) {
       if (buttonCode === Qt.LeftButton) root.toggle()
