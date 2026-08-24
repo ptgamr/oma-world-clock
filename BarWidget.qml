@@ -84,7 +84,7 @@ BarWidget {
     anchors.fill: parent
     bar: root.bar
     text: root.vertical ? String(root.locationCount) : "󰥔  " + root.locationCount
-    tooltipText: "Open World Clock meeting planner"
+    tooltipText: "Open World Clock"
     onPressed: function(buttonCode) {
       if (buttonCode === Qt.LeftButton) root.toggle()
     }

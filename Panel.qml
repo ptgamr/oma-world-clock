@@ -422,7 +422,7 @@ Panel {
     open: root.opened
     centerOnBar: true
     focusTarget: keyCatcher
-    contentWidth: panel.fittedContentWidth(Style.space(620))
+    contentWidth: panel.fittedContentWidth(Style.space(540))
     contentHeight: panel.fittedContentHeight(contentColumn.implicitHeight, Style.space(760))
 
     Rectangle {
