@@ -737,6 +737,7 @@ Panel {
                   anchors.right: parent.right
                   anchors.verticalCenter: parent.verticalCenter
                   checked: root.showAnalogClock
+                  rounded: false
                   foreground: root.contentForeground
                   accent: Color.accent
                   onToggled: root.persistSetting("showAnalogClock", !checked)
