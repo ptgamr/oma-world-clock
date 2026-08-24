@@ -1,4 +1,6 @@
 import importlib.util
+import io
+import json
 import tempfile
 import unittest
 from datetime import UTC, datetime
@@ -209,6 +211,70 @@ class SearchTests(unittest.TestCase):
         self.assertEqual(zone_matches[0]["timezone"], "Asia/Kathmandu")
         self.assertAlmostEqual(city_matches[0]["latitude"], 40.714, places=2)
         self.assertAlmostEqual(city_matches[0]["longitude"], -74.006, places=2)
+
+
+class SecurityLimitTests(unittest.TestCase):
+    def test_location_count_is_bounded(self):
+        locations = [
+            {
+                "id": f"location-{index}",
+                "name": f"Location {index}",
+                "timezone": "Etc/UTC",
+                "isHome": index == 0,
+            }
+            for index in range(timezone.MAX_LOCATIONS + 1)
+        ]
+        with self.assertRaisesRegex(timezone.InputError, "between 1 and 12"):
+            timezone.parse_locations(json.dumps(locations))
+
+    def test_location_fields_and_serialized_input_are_bounded(self):
+        oversized_name = [{
+            "id": "home",
+            "name": "x" * (timezone.MAX_LOCATION_NAME_LENGTH + 1),
+            "timezone": "Etc/UTC",
+            "isHome": True,
+        }]
+        with self.assertRaisesRegex(timezone.InputError, "safe field limit"):
+            timezone.parse_locations(json.dumps(oversized_name))
+        with self.assertRaisesRegex(timezone.InputError, "serialized limit"):
+            timezone.parse_locations(" " * (timezone.MAX_LOCATIONS_JSON_BYTES + 1))
+
+    def test_locations_require_one_home_and_valid_coordinates(self):
+        no_home = [{
+            "id": "utc", "name": "UTC", "timezone": "Etc/UTC", "isHome": False
+        }]
+        with self.assertRaisesRegex(timezone.InputError, "exactly one Home"):
+            timezone.parse_locations(json.dumps(no_home))
+
+        invalid_coordinates = [{
+            "id": "utc",
+            "name": "UTC",
+            "timezone": "Etc/UTC",
+            "isHome": True,
+            "latitude": 91,
+            "longitude": 0,
+        }]
+        with self.assertRaisesRegex(timezone.InputError, "safe range"):
+            timezone.parse_locations(json.dumps(invalid_coordinates))
+
+    def test_timeline_work_is_bounded_before_output(self):
+        with self.assertRaisesRegex(timezone.InputError, "48 slots"):
+            timezone.timeline(0, LOCATIONS[:1], hours=24, step_minutes=15)
+
+    def test_search_and_helper_output_are_bounded(self):
+        with self.assertRaisesRegex(timezone.InputError, "search exceeds"):
+            timezone.search_zones("x" * (timezone.MAX_SEARCH_QUERY_LENGTH + 1))
+        with self.assertRaisesRegex(timezone.InputError, "output exceeds"):
+            timezone.write_json("x" * timezone.MAX_HELPER_OUTPUT_BYTES)
+
+        output = io.StringIO()
+        original_stdout = timezone.sys.stdout
+        try:
+            timezone.sys.stdout = output
+            timezone.write_json({"timezone": "Etc/UTC"})
+        finally:
+            timezone.sys.stdout = original_stdout
+        self.assertEqual(json.loads(output.getvalue()), {"timezone": "Etc/UTC"})
 
 
 class SystemTimezoneTests(unittest.TestCase):

@@ -77,6 +77,16 @@ ZONEINFO_ROOTS = (
     Path("/usr/share/lib/zoneinfo"),
     Path("/etc/zoneinfo"),
 )
+MAX_LOCATIONS = 12
+MAX_LOCATION_ID_LENGTH = 64
+MAX_LOCATION_NAME_LENGTH = 80
+MAX_TIMEZONE_LENGTH = 128
+MAX_SEARCH_QUERY_LENGTH = 80
+MAX_LOCATIONS_JSON_BYTES = 8192
+MAX_HELPER_OUTPUT_BYTES = 256 * 1024
+MAX_HELPER_ERROR_LENGTH = 256
+MAX_SEARCH_RESULTS = 20
+MAX_TIMELINE_SLOTS = 48
 
 
 class InputError(ValueError):
@@ -312,6 +322,8 @@ def timeline(
     start = datetime.fromtimestamp(float(start_timestamp_ms) / 1000, UTC)
     total_minutes = hours * 60
     slot_count = total_minutes // step_minutes
+    if slot_count > MAX_TIMELINE_SLOTS:
+        raise InputError(f"Timeline cannot exceed {MAX_TIMELINE_SLOTS} slots")
     home_location = next((item for item in locations if item.get("isHome")), locations[0])
     home_zone = zone(str(home_location.get("timezone", "")))
 
@@ -511,6 +523,10 @@ def resolve_local(naive: datetime, timezone: ZoneInfo) -> datetime:
 
 
 def shift_date(timestamp_ms: int | float, zone_name: str, days: int) -> dict[str, Any]:
+    if not isinstance(zone_name, str) or not zone_name or len(zone_name) > MAX_TIMEZONE_LENGTH:
+        raise InputError("Timezone exceeds the safe field limit")
+    if not isinstance(days, int) or isinstance(days, bool) or abs(days) > 366:
+        raise InputError("Date shift must be within 366 days")
     timezone = zone(zone_name)
     instant = datetime.fromtimestamp(float(timestamp_ms) / 1000, UTC)
     local = instant.astimezone(timezone)
@@ -589,11 +605,31 @@ def zone_records() -> list[dict[str, Any]]:
 
 
 def search_zones(query: str, limit: int = 8) -> list[dict[str, Any]]:
+    if not isinstance(query, str) or len(query) > MAX_SEARCH_QUERY_LENGTH:
+        raise InputError("Timezone search exceeds the safe field limit")
+    if not isinstance(limit, int) or isinstance(limit, bool) or not 1 <= limit <= MAX_SEARCH_RESULTS:
+        raise InputError(f"Timezone search limit must be between 1 and {MAX_SEARCH_RESULTS}")
     needle = " ".join(query.strip().lower().replace("_", " ").split())
     records = zone_records()
+
+    def public_record(item: dict[str, Any]) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "timezone": str(item.get("timezone", ""))[:MAX_TIMEZONE_LENGTH],
+            "name": str(item.get("name", ""))[:MAX_LOCATION_NAME_LENGTH],
+            "country": str(item.get("country", ""))[:128],
+        }
+        for coordinate in ("latitude", "longitude"):
+            if coordinate in item:
+                result[coordinate] = item[coordinate]
+        return result
+
     if not needle:
         by_zone = {item["timezone"]: item for item in records}
-        return [by_zone[name] for name in POPULAR_ZONES if name in by_zone][:limit]
+        return [
+            public_record(by_zone[name])
+            for name in POPULAR_ZONES
+            if name in by_zone
+        ][:limit]
 
     def score(item: dict[str, Any]) -> tuple[int, int, str]:
         timezone = item["timezone"].lower()
@@ -615,17 +651,89 @@ def search_zones(query: str, limit: int = 8) -> list[dict[str, Any]]:
 
     matches = [item for item in records if score(item)[0] < 99]
     matches.sort(key=score)
-    return matches[: max(1, min(limit, 20))]
+    return [public_record(item) for item in matches[:limit]]
 
 
 def parse_locations(raw: str) -> list[dict[str, Any]]:
+    if not isinstance(raw, str) or len(raw.encode("utf-8")) > MAX_LOCATIONS_JSON_BYTES:
+        raise InputError("Locations JSON exceeds the safe serialized limit")
     try:
         value = json.loads(raw)
     except json.JSONDecodeError as error:
         raise InputError("Locations must be valid JSON") from error
     if not isinstance(value, list):
         raise InputError("Locations must be a JSON array")
-    return value
+    if not 1 <= len(value) <= MAX_LOCATIONS:
+        raise InputError(f"Locations must contain between 1 and {MAX_LOCATIONS} entries")
+
+    result: list[dict[str, Any]] = []
+    seen_ids: set[str] = set()
+    home_count = 0
+    for index, item in enumerate(value):
+        if not isinstance(item, dict):
+            raise InputError(f"Location {index + 1} must be an object")
+
+        fields = (
+            ("id", MAX_LOCATION_ID_LENGTH),
+            ("name", MAX_LOCATION_NAME_LENGTH),
+            ("timezone", MAX_TIMEZONE_LENGTH),
+        )
+        normalized: dict[str, Any] = {}
+        for field, maximum in fields:
+            field_value = item.get(field)
+            if not isinstance(field_value, str):
+                raise InputError(f"Location {index + 1} {field} must be text")
+            field_value = field_value.strip()
+            if not field_value or len(field_value) > maximum:
+                raise InputError(f"Location {index + 1} {field} exceeds the safe field limit")
+            normalized[field] = field_value
+
+        if normalized["id"] in seen_ids:
+            raise InputError("Location ids must be unique")
+        seen_ids.add(normalized["id"])
+        if valid_timezone_name(normalized["timezone"]) != normalized["timezone"]:
+            raise InputError(f"Unknown timezone: {normalized['timezone']}")
+
+        is_home = item.get("isHome", False)
+        if not isinstance(is_home, bool):
+            raise InputError(f"Location {index + 1} isHome must be boolean")
+        normalized["isHome"] = is_home
+        if is_home:
+            home_count += 1
+
+        latitude_present = "latitude" in item
+        longitude_present = "longitude" in item
+        if latitude_present != longitude_present:
+            raise InputError("Location coordinates must include latitude and longitude")
+        if latitude_present:
+            latitude = item["latitude"]
+            longitude = item["longitude"]
+            if (
+                isinstance(latitude, bool)
+                or isinstance(longitude, bool)
+                or not isinstance(latitude, (int, float))
+                or not isinstance(longitude, (int, float))
+                or not isfinite(latitude)
+                or not isfinite(longitude)
+                or not -90 <= latitude <= 90
+                or not -180 <= longitude <= 180
+            ):
+                raise InputError("Location coordinates are outside the safe range")
+            normalized["latitude"] = latitude
+            normalized["longitude"] = longitude
+
+        result.append(normalized)
+
+    if home_count != 1:
+        raise InputError("Locations must contain exactly one Home entry")
+    return result
+
+
+def write_json(value: Any) -> None:
+    payload = json.dumps(value, separators=(",", ":"), ensure_ascii=False)
+    if len(payload.encode("utf-8")) > MAX_HELPER_OUTPUT_BYTES:
+        raise InputError("Timezone helper output exceeds the safe limit")
+    sys.stdout.write(payload + "\n")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -681,10 +789,10 @@ def main(argv: list[str] | None = None) -> int:
             )
         else:
             result = {"timezone": detect_system_timezone()}
-        print(json.dumps(result, separators=(",", ":"), ensure_ascii=False))
+        write_json(result)
         return 0
     except (InputError, ValueError, OverflowError) as error:
-        print(json.dumps({"error": str(error)}, separators=(",", ":")))
+        write_json({"error": str(error)[:MAX_HELPER_ERROR_LENGTH]})
         return 2
 
 

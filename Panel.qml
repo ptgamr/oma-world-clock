@@ -24,6 +24,7 @@ Panel {
   readonly property string contentFontFamily: bar ? bar.fontFamily : Style.font.family
   readonly property string helperPath: decodeURIComponent(
     String(Qt.resolvedUrl("helpers/timezone.py")).replace(/^file:\/\//, ""))
+  readonly property var securityLimits: Model.securityLimits()
 
   readonly property var locations: service
     ? service.locations
@@ -500,6 +501,11 @@ Panel {
   }
 
   function startAddingLocation() {
+    if (root.locations.length >= root.securityLimits.maxLocations) {
+      root.localError = "World Clock supports up to "
+        + root.securityLimits.maxLocations + " locations."
+      return
+    }
     root.renamingId = ""
     root.addingLocation = true
     root.localError = ""
@@ -530,7 +536,7 @@ Panel {
   }
 
   function requestTimezoneSearch(query) {
-    root.pendingSearchQuery = String(query || "")
+    root.pendingSearchQuery = Model.boundedSearchQuery(query)
     searchDebounce.restart()
   }
 
@@ -563,6 +569,11 @@ Panel {
   }
 
   function commitAddLocation() {
+    if (root.locations.length >= root.securityLimits.maxLocations) {
+      root.localError = "World Clock supports up to "
+        + root.securityLimits.maxLocations + " locations."
+      return
+    }
     var timezone = root.chosenTimezone
     var defaultName = root.chosenTimezoneName
     var latitude = root.chosenLatitude
@@ -632,12 +643,28 @@ Panel {
       onStreamFinished: {
         var raw = String(text || "").trim()
         if (!root.addingLocation || raw === "") return
+        if (!Model.helperOutputAllowed(raw)) {
+          root.timezoneSuggestions = []
+          root.localError = "Timezone search returned too much data."
+          return
+        }
         try {
           var result = JSON.parse(raw)
-          if (Array.isArray(result) && root.activeSearchQuery === root.pendingSearchQuery) {
-            root.timezoneSuggestions = result
+          var resultError = Model.helperResultError(result)
+          if (resultError !== "") {
+            root.timezoneSuggestions = []
+            root.localError = resultError
+            return
+          }
+          var sanitized = Model.sanitizedSearchResults(result)
+          if (sanitized && root.activeSearchQuery === root.pendingSearchQuery) {
+            root.timezoneSuggestions = sanitized
             root.suggestionIndex = 0
+            root.localError = ""
             Qt.callLater(function() { root.revealItem(addEditor) })
+          } else if (!sanitized) {
+            root.timezoneSuggestions = []
+            root.localError = "Timezone search returned invalid data."
           }
         } catch (error) {
           root.timezoneSuggestions = []
@@ -789,6 +816,7 @@ Panel {
             height: Math.max(monthTitle.implicitHeight, calendarControls.implicitHeight)
 
             Text {
+              textFormat: Text.PlainText
               id: monthTitle
               anchors.left: parent.left
               anchors.verticalCenter: parent.verticalCenter
@@ -853,6 +881,7 @@ Panel {
               spacing: Style.space(3)
 
               Text {
+                textFormat: Text.PlainText
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: "CW"
                 color: Qt.darker(root.contentForeground, 1.5)
@@ -861,6 +890,7 @@ Panel {
               }
 
               Text {
+                textFormat: Text.PlainText
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: String(root.calendarData.weekNumber || "")
                 color: Qt.darker(root.contentForeground, 1.5)
@@ -883,6 +913,7 @@ Panel {
                   spacing: Style.space(3)
 
                   Text {
+                    textFormat: Text.PlainText
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: calendarDay.modelData.weekday
                     color: calendarDay.modelData.isAdjacentMonth
@@ -899,6 +930,7 @@ Panel {
                     color: calendarDay.modelData.isSelected ? Color.accent : "transparent"
 
                     Text {
+                      textFormat: Text.PlainText
                       anchors.centerIn: parent
                       text: String(calendarDay.modelData.day)
                       color: calendarDay.modelData.isSelected
@@ -939,6 +971,7 @@ Panel {
             height: Math.max(worldClockTitle.implicitHeight, headerActions.implicitHeight)
 
             Text {
+              textFormat: Text.PlainText
               id: worldClockTitle
               anchors.left: parent.left
               anchors.verticalCenter: parent.verticalCenter
@@ -1008,6 +1041,7 @@ Panel {
               spacing: Style.space(8)
 
               Text {
+                textFormat: Text.PlainText
                 text: "APPEARANCE"
                 color: root.contentForeground
                 font.family: root.contentFontFamily
@@ -1033,6 +1067,7 @@ Panel {
                 }
 
                 Text {
+                  textFormat: Text.PlainText
                   id: analogSettingLabel
                   anchors.left: parent.left
                   anchors.leftMargin: Style.space(6)
@@ -1073,6 +1108,7 @@ Panel {
                 }
 
                 Text {
+                  textFormat: Text.PlainText
                   id: hourFormatLabel
                   anchors.left: parent.left
                   anchors.leftMargin: Style.space(6)
@@ -1117,6 +1153,7 @@ Panel {
           }
 
           Text {
+            textFormat: Text.PlainText
             visible: root.serviceError !== ""
             width: parent.width
             text: root.serviceError
@@ -1218,6 +1255,7 @@ Panel {
                         spacing: Style.space(7)
 
                         Text {
+                          textFormat: Text.PlainText
                           anchors.verticalCenter: parent.verticalCenter
                           text: clockCard.modelData.name
                           color: root.contentForeground
@@ -1237,6 +1275,7 @@ Panel {
                             root.contentForeground, Color.accent, Color.urgent)
 
                           Text {
+                            textFormat: Text.PlainText
                             id: homeBadgeText
                             anchors.centerIn: parent
                             text: "HOME"
@@ -1250,6 +1289,7 @@ Panel {
                       }
 
                       Text {
+                        textFormat: Text.PlainText
                         text: clockCard.rendered ? clockCard.rendered.weekday : "Loading…"
                         color: Qt.darker(root.contentForeground, 1.35)
                         font.family: root.contentFontFamily
@@ -1287,6 +1327,7 @@ Panel {
                         spacing: Style.space(4)
 
                         Text {
+                          textFormat: Text.PlainText
                           id: localTimeText
                           text: clockCard.rendered
                             ? (root.hourFormat === "24"
@@ -1299,6 +1340,7 @@ Panel {
                         }
 
                         Text {
+                          textFormat: Text.PlainText
                           visible: root.hourFormat === "12"
                           anchors.baseline: localTimeText.baseline
                           text: clockCard.rendered ? clockCard.rendered.period : ""
@@ -1310,6 +1352,7 @@ Panel {
                       }
 
                       Text {
+                        textFormat: Text.PlainText
                         width: parent.width
                         horizontalAlignment: Text.AlignRight
                         text: clockCard.rendered
@@ -1345,6 +1388,7 @@ Panel {
               spacing: Style.space(7)
 
               Text {
+                textFormat: Text.PlainText
                 text: "RENAME LOCATION"
                 color: root.contentForeground
                 font.family: root.contentFontFamily
@@ -1361,6 +1405,7 @@ Panel {
                   width: renameContent.width - saveRename.implicitWidth - cancelRename.implicitWidth - Style.space(12)
                   foreground: root.contentForeground
                   placeholderText: "Display name"
+                  maximumLength: root.securityLimits.maxLocationNameLength
                   Keys.onPressed: function(event) {
                     if (event.key === Qt.Key_Escape) {
                       root.cancelEditors()
@@ -1407,6 +1452,7 @@ Panel {
               spacing: Style.space(7)
 
               Text {
+                textFormat: Text.PlainText
                 text: "ADD LOCATION"
                 color: root.contentForeground
                 font.family: root.contentFontFamily
@@ -1423,6 +1469,7 @@ Panel {
                   width: (addContent.width - Style.space(6)) * 0.58
                   foreground: root.contentForeground
                   placeholderText: "Search city or IANA timezone"
+                  maximumLength: root.securityLimits.maxSearchQueryLength
                   onTextChanged: {
                     if (root.assigningSuggestion) return
                     root.chosenTimezone = ""
@@ -1455,6 +1502,7 @@ Panel {
                   width: (addContent.width - Style.space(6)) * 0.42
                   foreground: root.contentForeground
                   placeholderText: "Alias"
+                  maximumLength: root.securityLimits.maxLocationNameLength
                   Keys.onPressed: function(event) {
                     if (event.key === Qt.Key_Escape) {
                       root.cancelEditors()
@@ -1492,6 +1540,7 @@ Panel {
                       spacing: Style.space(8)
 
                       Text {
+                        textFormat: Text.PlainText
                         text: modelData.name
                         color: root.contentForeground
                         font.family: root.contentFontFamily
@@ -1499,6 +1548,7 @@ Panel {
                       }
 
                       Text {
+                        textFormat: Text.PlainText
                         text: modelData.timezone
                         color: Qt.darker(root.contentForeground, 1.5)
                         font.family: root.contentFontFamily
@@ -1506,6 +1556,7 @@ Panel {
                       }
 
                       Text {
+                        textFormat: Text.PlainText
                         visible: modelData.country !== ""
                         text: "· " + modelData.country
                         color: Qt.darker(root.contentForeground, 1.7)
@@ -1573,6 +1624,7 @@ Panel {
             + plannerSlider.width * plannerSlider.progress
 
           Text {
+            textFormat: Text.PlainText
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
             text: "−24h"
@@ -1618,6 +1670,7 @@ Panel {
           }
 
           Text {
+            textFormat: Text.PlainText
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             text: "+24h"
@@ -1652,6 +1705,7 @@ Panel {
               root.contentForeground, Color.accent, Color.urgent)
 
             Text {
+              textFormat: Text.PlainText
               id: plannerTooltipText
               anchors.centerIn: parent
               text: root.plannerTooltipText + " · "
@@ -1664,6 +1718,7 @@ Panel {
           }
 
           Text {
+            textFormat: Text.PlainText
             id: resetNowHint
             anchors.right: parent.right
             anchors.rightMargin: Style.space(4)
@@ -1676,6 +1731,7 @@ Panel {
         }
 
         Text {
+          textFormat: Text.PlainText
           id: shortcutText
           visible: root.plannerOffsetMinutes === 0
           width: parent.width

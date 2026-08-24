@@ -40,9 +40,73 @@ var MONTH_SHORT_NAMES = [
   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
 ]
 
+// Settings are user-editable and are also supplied to a long-lived shell
+// process. Keep all amplification points small and deterministic.
+var MAX_LOCATIONS = 12
+var MAX_LOCATION_ID_LENGTH = 64
+var MAX_LOCATION_NAME_LENGTH = 80
+var MAX_TIMEZONE_LENGTH = 128
+var MAX_SEARCH_QUERY_LENGTH = 80
+var MAX_LOCATIONS_JSON_BYTES = 8192
+var MAX_HELPER_OUTPUT_BYTES = 256 * 1024
+var MAX_HELPER_ERROR_LENGTH = 256
+var MAX_SEARCH_RESULTS = 6
+
 function cleanText(value) {
   return String(value === undefined || value === null ? "" : value)
     .replace(/^\s+|\s+$/g, "")
+}
+
+function limitedText(value, maximumLength) {
+  if (typeof value !== "string") return ""
+  return cleanText(value).slice(0, maximumLength)
+}
+
+function validResultText(value, maximumLength, allowEmpty) {
+  return typeof value === "string" && value.length <= maximumLength
+    && (allowEmpty === true || value.length > 0)
+}
+
+function validTimezoneText(value) {
+  if (!validResultText(value, MAX_TIMEZONE_LENGTH, false)) return false
+  var parts = value.split("/")
+  for (var i = 0; i < parts.length; i++) {
+    if (parts[i] === "" || parts[i] === "." || parts[i] === ".."
+        || !/^[A-Za-z0-9_+.-]+$/.test(parts[i])) return false
+  }
+  return true
+}
+
+function utf8ByteLength(value) {
+  var text = String(value || "")
+  var length = 0
+  for (var i = 0; i < text.length; i++) {
+    var code = text.charCodeAt(i)
+    if (code <= 0x7f) length += 1
+    else if (code <= 0x7ff) length += 2
+    else if (code >= 0xd800 && code <= 0xdbff
+        && i + 1 < text.length) {
+      var next = text.charCodeAt(i + 1)
+      if (next >= 0xdc00 && next <= 0xdfff) {
+        length += 4
+        i++
+      } else length += 3
+    } else length += 3
+  }
+  return length
+}
+
+function securityLimits() {
+  return {
+    maxLocations: MAX_LOCATIONS,
+    maxLocationIdLength: MAX_LOCATION_ID_LENGTH,
+    maxLocationNameLength: MAX_LOCATION_NAME_LENGTH,
+    maxTimezoneLength: MAX_TIMEZONE_LENGTH,
+    maxSearchQueryLength: MAX_SEARCH_QUERY_LENGTH,
+    maxLocationsJsonBytes: MAX_LOCATIONS_JSON_BYTES,
+    maxHelperOutputBytes: MAX_HELPER_OUTPUT_BYTES,
+    maxSearchResults: MAX_SEARCH_RESULTS
+  }
 }
 
 function validCoordinate(value, minimum, maximum) {
@@ -69,11 +133,11 @@ function applyCoordinates(target, source, name) {
 }
 
 function cloneLocation(location) {
-  var name = cleanText(location && location.name)
+  var name = limitedText(location && location.name, MAX_LOCATION_NAME_LENGTH)
   return applyCoordinates({
-    id: cleanText(location && location.id),
+    id: limitedText(location && location.id, MAX_LOCATION_ID_LENGTH),
     name: name,
-    timezone: cleanText(location && location.timezone),
+    timezone: limitedText(location && location.timezone, MAX_TIMEZONE_LENGTH),
     isHome: !!(location && location.isHome)
   }, location, name)
 }
@@ -116,17 +180,24 @@ function slugify(value) {
   var slug = cleanText(value).toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
-  return slug || "location"
+  return (slug || "location").slice(0, MAX_LOCATION_ID_LENGTH)
+}
+
+function uniqueBoundedId(seen, preferred) {
+  var base = limitedText(preferred, MAX_LOCATION_ID_LENGTH) || "location"
+  var candidate = base
+  var suffix = 2
+  while (seen[candidate]) {
+    var ending = "-" + suffix++
+    candidate = base.slice(0, MAX_LOCATION_ID_LENGTH - ending.length) + ending
+  }
+  return candidate
 }
 
 function uniqueId(locations, preferred) {
   var used = {}
   for (var i = 0; i < locations.length; i++) used[String(locations[i].id)] = true
-  var base = slugify(preferred)
-  var candidate = base
-  var suffix = 2
-  while (used[candidate]) candidate = base + "-" + suffix++
-  return candidate
+  return uniqueBoundedId(used, slugify(preferred))
 }
 
 function normalizeLocations(value) {
@@ -135,17 +206,19 @@ function normalizeLocations(value) {
   var out = []
   var seen = {}
   var homeFound = false
-  for (var i = 0; i < value.length; i++) {
+  var inspectedCount = Math.min(value.length, MAX_LOCATIONS)
+  for (var i = 0; i < inspectedCount; i++) {
     var source = value[i]
     if (!source || typeof source !== "object") continue
-    var timezone = cleanText(source.timezone)
-    if (timezone === "") continue
+    if (typeof source.timezone !== "string") continue
+    var rawTimezone = cleanText(source.timezone)
+    if (!validTimezoneText(rawTimezone)) continue
+    var timezone = rawTimezone
 
-    var name = cleanText(source.name) || timezone.split("/").pop().replace(/_/g, " ")
-    var baseId = cleanText(source.id) || slugify(name)
-    var id = baseId
-    var suffix = 2
-    while (seen[id]) id = baseId + "-" + suffix++
+    var name = limitedText(source.name, MAX_LOCATION_NAME_LENGTH)
+      || timezone.split("/").pop().replace(/_/g, " ").slice(0, MAX_LOCATION_NAME_LENGTH)
+    var baseId = limitedText(source.id, MAX_LOCATION_ID_LENGTH) || slugify(name)
+    var id = uniqueBoundedId(seen, baseId)
     seen[id] = true
 
     var isHome = !!source.isHome && !homeFound
@@ -167,9 +240,11 @@ function homeLocation(locations) {
 
 function addLocation(locations, name, timezone, latitude, longitude) {
   var out = normalizeLocations(locations)
+  if (out.length >= MAX_LOCATIONS || typeof timezone !== "string") return out
   var cleanZone = cleanText(timezone)
-  if (cleanZone === "") return out
-  var cleanName = cleanText(name) || cleanZone.split("/").pop().replace(/_/g, " ")
+  if (!validTimezoneText(cleanZone)) return out
+  var cleanName = limitedText(name, MAX_LOCATION_NAME_LENGTH)
+    || cleanZone.split("/").pop().replace(/_/g, " ").slice(0, MAX_LOCATION_NAME_LENGTH)
   out.push(applyCoordinates({
     id: uniqueId(out, cleanName),
     name: cleanName,
@@ -195,12 +270,301 @@ function removeLocation(locations, id) {
 
 function renameLocation(locations, id, name) {
   var normalized = normalizeLocations(locations)
-  var cleanName = cleanText(name)
+  var cleanName = limitedText(name, MAX_LOCATION_NAME_LENGTH)
   if (cleanName === "") return normalized
   for (var i = 0; i < normalized.length; i++) {
     if (normalized[i].id === id) normalized[i].name = cleanName
   }
   return normalized
+}
+
+function helperLocationsPayload(value) {
+  var locations = normalizeLocations(value)
+  var serialized = JSON.stringify(locations)
+  if (utf8ByteLength(serialized) > MAX_LOCATIONS_JSON_BYTES) return null
+  return { locations: locations, serialized: serialized }
+}
+
+function helperOutputAllowed(raw) {
+  return typeof raw === "string" && utf8ByteLength(raw) <= MAX_HELPER_OUTPUT_BYTES
+}
+
+function boundedSearchQuery(value) {
+  return limitedText(String(value || ""), MAX_SEARCH_QUERY_LENGTH)
+}
+
+function helperResultError(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)
+      || !("error" in value)) return ""
+  if (validResultText(value.error, MAX_HELPER_ERROR_LENGTH, false)) return value.error
+  return "Timezone helper returned an invalid error."
+}
+
+function finiteNumber(value, minimum, maximum) {
+  return typeof value === "number" && isFinite(value)
+    && value >= minimum && value <= maximum
+}
+
+function integerInRange(value, minimum, maximum) {
+  return finiteNumber(value, minimum, maximum) && Math.floor(value) === value
+}
+
+function validDate(value) {
+  return validResultText(value, 10, false) && /^\d{4}-\d{2}-\d{2}$/.test(value)
+}
+
+function validTime(value) {
+  return validResultText(value, 5, false) && /^\d{1,2}:\d{2}$/.test(value)
+}
+
+function matchesLocation(row, expected) {
+  return row && typeof row === "object" && !Array.isArray(row)
+    && row.id === expected.id && row.name === expected.name
+    && row.timezone === expected.timezone && row.isHome === expected.isHome
+}
+
+function sanitizedCalendar(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)
+      || !validResultText(value.monthLabel, 32, false)
+      || !integerInRange(value.weekNumber, 1, 53)
+      || !Array.isArray(value.days) || value.days.length !== 7) return null
+  var days = []
+  for (var i = 0; i < value.days.length; i++) {
+    var day = value.days[i]
+    if (!day || typeof day !== "object" || Array.isArray(day)
+        || !validDate(day.date) || !validResultText(day.weekday, 3, false)
+        || !integerInRange(day.day, 1, 31) || !integerInRange(day.offsetDays, -6, 6)
+        || typeof day.isSelected !== "boolean"
+        || typeof day.isAdjacentMonth !== "boolean") return null
+    days.push({
+      date: day.date,
+      weekday: day.weekday,
+      day: day.day,
+      offsetDays: day.offsetDays,
+      isSelected: day.isSelected,
+      isAdjacentMonth: day.isAdjacentMonth
+    })
+  }
+  return { monthLabel: value.monthLabel, weekNumber: value.weekNumber, days: days }
+}
+
+function sanitizedRenderedRow(row, expected) {
+  if (!matchesLocation(row, expected)
+      || !validDate(row.date) || !validResultText(row.dateLabel, 32, false)
+      || !validResultText(row.weekday, 9, false) || !validTime(row.time)
+      || !validTime(row.time12) || !/^(AM|PM)$/.test(row.period)
+      || !integerInRange(row.hour, 0, 23) || !integerInRange(row.minute, 0, 59)
+      || typeof row.isWeekend !== "boolean"
+      || !integerInRange(row.utcOffsetMinutes, -24 * 60, 24 * 60)
+      || !integerInRange(row.offsetDifferenceMinutes, -48 * 60, 48 * 60)
+      || !validResultText(row.abbreviation, 16, true)
+      || !validResultText(row.dayRelation, 32, false)) return null
+  if (row.latitude !== null && !finiteNumber(row.latitude, -90, 90)) return null
+  if (row.longitude !== null && !finiteNumber(row.longitude, -180, 180)) return null
+  return {
+    id: expected.id,
+    name: expected.name,
+    timezone: expected.timezone,
+    isHome: expected.isHome,
+    date: row.date,
+    dateLabel: row.dateLabel,
+    weekday: row.weekday,
+    time: row.time,
+    time12: row.time12,
+    period: row.period,
+    hour: row.hour,
+    minute: row.minute,
+    latitude: row.latitude,
+    longitude: row.longitude,
+    isWeekend: row.isWeekend,
+    utcOffsetMinutes: row.utcOffsetMinutes,
+    offsetDifferenceMinutes: row.offsetDifferenceMinutes,
+    abbreviation: row.abbreviation,
+    dayRelation: row.dayRelation
+  }
+}
+
+function sanitizedRenderResult(value, expectedTimestamp, expectedLocations) {
+  if (!value || typeof value !== "object" || Array.isArray(value)
+      || value.timestampMs !== expectedTimestamp || !validDate(value.homeDate)
+      || !validResultText(value.homeDateLabel, 32, false)
+      || !Array.isArray(value.rows) || value.rows.length !== expectedLocations.length
+      || value.rows.length > MAX_LOCATIONS) return null
+  var calendar = sanitizedCalendar(value.calendar)
+  if (!calendar) return null
+  var rows = []
+  for (var i = 0; i < value.rows.length; i++) {
+    var row = sanitizedRenderedRow(value.rows[i], expectedLocations[i])
+    if (!row) return null
+    rows.push(row)
+  }
+  return {
+    timestampMs: value.timestampMs,
+    homeDate: value.homeDate,
+    homeDateLabel: value.homeDateLabel,
+    calendar: calendar,
+    rows: rows
+  }
+}
+
+function sanitizedTimelineCell(value, expectedTimestamp, expectedOffset) {
+  if (!value || typeof value !== "object" || Array.isArray(value)
+      || value.offsetMinutes !== expectedOffset || value.timestampMs !== expectedTimestamp
+      || !validDate(value.date) || !validResultText(value.weekday, 9, false)
+      || !validTime(value.time) || !validTime(value.time12)
+      || !/^(AM|PM)$/.test(value.period)
+      || !integerInRange(value.hour, 0, 23) || !integerInRange(value.minute, 0, 59)
+      || typeof value.isWeekend !== "boolean" || typeof value.isDaytime !== "boolean"
+      || !/^(work|edge|off)$/.test(value.availability)) return null
+  return {
+    offsetMinutes: value.offsetMinutes,
+    timestampMs: value.timestampMs,
+    date: value.date,
+    weekday: value.weekday,
+    time: value.time,
+    time12: value.time12,
+    period: value.period,
+    hour: value.hour,
+    minute: value.minute,
+    isWeekend: value.isWeekend,
+    isDaytime: value.isDaytime,
+    availability: value.availability
+  }
+}
+
+function sanitizedTimelineResult(value, expectedStart, expectedLocations) {
+  var hours = 24
+  var stepMinutes = 30
+  var slotCount = hours * 60 / stepMinutes
+  if (!value || typeof value !== "object" || Array.isArray(value)
+      || value.startTimestampMs !== expectedStart
+      || value.endTimestampMs !== expectedStart + hours * 60 * 60 * 1000
+      || value.hours !== hours || value.stepMinutes !== stepMinutes
+      || value.slotCount !== slotCount || !Array.isArray(value.ticks)
+      || value.ticks.length !== 5 || !Array.isArray(value.rows)
+      || value.rows.length !== expectedLocations.length
+      || value.rows.length > MAX_LOCATIONS) return null
+  var ticks = []
+  for (var t = 0; t < value.ticks.length; t++) {
+    var tick = value.ticks[t]
+    var expectedOffset = t * 6 * 60
+    if (!tick || typeof tick !== "object" || Array.isArray(tick)
+        || tick.offsetMinutes !== expectedOffset || !validTime(tick.time)
+        || !validResultText(tick.weekday, 3, false) || !validDate(tick.date)) return null
+    ticks.push({
+      offsetMinutes: tick.offsetMinutes,
+      time: tick.time,
+      weekday: tick.weekday,
+      date: tick.date
+    })
+  }
+  var rows = []
+  for (var r = 0; r < value.rows.length; r++) {
+    var source = value.rows[r]
+    var expected = expectedLocations[r]
+    if (!matchesLocation(source, expected) || !Array.isArray(source.cells)
+        || source.cells.length !== slotCount) return null
+    var cells = []
+    for (var c = 0; c < source.cells.length; c++) {
+      var offset = c * stepMinutes
+      var cell = sanitizedTimelineCell(
+        source.cells[c], expectedStart + offset * 60000, offset)
+      if (!cell) return null
+      cells.push(cell)
+    }
+    rows.push({
+      id: expected.id,
+      name: expected.name,
+      timezone: expected.timezone,
+      isHome: expected.isHome,
+      cells: cells
+    })
+  }
+  return {
+    startTimestampMs: value.startTimestampMs,
+    endTimestampMs: value.endTimestampMs,
+    hours: hours,
+    stepMinutes: stepMinutes,
+    slotCount: slotCount,
+    ticks: ticks,
+    rows: rows
+  }
+}
+
+function sanitizedMeetingResult(value, expectedStart, expectedDuration, expectedLocations) {
+  if (!value || typeof value !== "object" || Array.isArray(value)
+      || value.startTimestampMs !== expectedStart
+      || value.endTimestampMs !== expectedStart + expectedDuration * 60000
+      || value.durationMinutes !== expectedDuration || !validDate(value.homeDate)
+      || !validResultText(value.homeDateLabel, 48, false)
+      || !Array.isArray(value.rows) || value.rows.length !== expectedLocations.length
+      || value.rows.length > MAX_LOCATIONS) return null
+  var rows = []
+  for (var i = 0; i < value.rows.length; i++) {
+    var row = value.rows[i]
+    var expected = expectedLocations[i]
+    if (!matchesLocation(row, expected) || !validDate(row.startDate)
+        || !validResultText(row.startWeekday, 9, false)
+        || !validResultText(row.range12, 48, false)
+        || !validResultText(row.range24, 48, false)
+        || !validResultText(row.abbreviation, 16, true)) return null
+    rows.push({
+      id: expected.id,
+      name: expected.name,
+      timezone: expected.timezone,
+      isHome: expected.isHome,
+      startDate: row.startDate,
+      startWeekday: row.startWeekday,
+      range12: row.range12,
+      range24: row.range24,
+      abbreviation: row.abbreviation
+    })
+  }
+  return {
+    startTimestampMs: value.startTimestampMs,
+    endTimestampMs: value.endTimestampMs,
+    durationMinutes: value.durationMinutes,
+    homeDate: value.homeDate,
+    homeDateLabel: value.homeDateLabel,
+    rows: rows
+  }
+}
+
+function sanitizedShiftDateResult(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)
+      || !finiteNumber(value.timestampMs, -8640000000000000, 8640000000000000)
+      || !validDate(value.date) || typeof value.normalized !== "boolean") return null
+  return { timestampMs: value.timestampMs, date: value.date, normalized: value.normalized }
+}
+
+function sanitizedDetectedTimezone(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)
+      || !validTimezoneText(value.timezone)) return ""
+  return value.timezone
+}
+
+function sanitizedSearchResults(value) {
+  if (!Array.isArray(value) || value.length > MAX_SEARCH_RESULTS) return null
+  var result = []
+  for (var i = 0; i < value.length; i++) {
+    var item = value[i]
+    if (!item || typeof item !== "object" || Array.isArray(item)
+        || !validResultText(item.name, MAX_LOCATION_NAME_LENGTH, false)
+        || !validTimezoneText(item.timezone)
+        || !validResultText(item.country, 128, true)) return null
+    if (item.latitude !== undefined && item.latitude !== null
+        && !finiteNumber(item.latitude, -90, 90)) return null
+    if (item.longitude !== undefined && item.longitude !== null
+        && !finiteNumber(item.longitude, -180, 180)) return null
+    result.push({
+      name: item.name,
+      timezone: item.timezone,
+      country: item.country,
+      latitude: item.latitude === undefined ? null : item.latitude,
+      longitude: item.longitude === undefined ? null : item.longitude
+    })
+  }
+  return result
 }
 
 function moveLocation(locations, id, delta) {
@@ -424,6 +788,18 @@ function metadataForRow(row, showAbbreviation, showDifference, showDayRelation) 
 
 if (typeof module !== "undefined") {
   module.exports = {
+    securityLimits: securityLimits,
+    utf8ByteLength: utf8ByteLength,
+    helperLocationsPayload: helperLocationsPayload,
+    helperOutputAllowed: helperOutputAllowed,
+    boundedSearchQuery: boundedSearchQuery,
+    helperResultError: helperResultError,
+    sanitizedRenderResult: sanitizedRenderResult,
+    sanitizedTimelineResult: sanitizedTimelineResult,
+    sanitizedMeetingResult: sanitizedMeetingResult,
+    sanitizedShiftDateResult: sanitizedShiftDateResult,
+    sanitizedDetectedTimezone: sanitizedDetectedTimezone,
+    sanitizedSearchResults: sanitizedSearchResults,
     defaultLocations: defaultLocations,
     coordinatesForLocation: coordinatesForLocation,
     normalizeLocations: normalizeLocations,

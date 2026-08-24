@@ -100,6 +100,10 @@ select the 12- and 24-hour formats directly.
 Locations and appearance settings are stored in this widget's entry in
 `~/.config/omarchy/shell.json`:
 
+World Clock accepts up to 12 locations. Location IDs are limited to 64
+characters, display names to 80 characters, and IANA timezone names to 128
+characters before any timezone helper is started.
+
 ```json
 {
   "id": "io.github.ptgamr.world-clock",

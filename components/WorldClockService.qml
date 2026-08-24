@@ -39,6 +39,7 @@ Item {
 
   property bool renderQueued: false
   property double activeRenderTimestamp: 0
+  property var activeRenderLocations: []
   property int dateShiftOffset: 0
   readonly property bool dateShiftBusy: dateShiftProcess.running
 
@@ -54,6 +55,7 @@ Item {
   })
   property bool timelineQueued: false
   property double activeTimelineStart: 0
+  property var activeTimelineLocations: []
 
   property int meetingDurationMinutes: 60
   readonly property double meetingEndTimestamp: planningTimestamp + meetingDurationMinutes * 60000
@@ -68,6 +70,7 @@ Item {
   property bool meetingQueued: false
   property double activeMeetingStart: 0
   property int activeMeetingDuration: 60
+  property var activeMeetingLocations: []
   property string copyStatus: ""
 
   function entrySettings() {
@@ -171,6 +174,11 @@ Item {
 
   function shiftPlanningDate(days) {
     if (dateShiftProcess.running || !root.homeLocation) return
+    var payload = Model.helperLocationsPayload([root.homeLocation])
+    if (!payload || payload.locations.length !== 1) {
+      root.errorMessage = "Location settings exceed the safe helper limits."
+      return
+    }
     root.followingNow = false
     root.dateShiftOffset = root.plannerOffsetMinutes
     dateShiftProcess.command = [
@@ -178,7 +186,7 @@ Item {
       root.helperPath,
       "shift-date",
       String(Math.round(root.planningTimestamp)),
-      root.homeLocation.timezone,
+      payload.locations[0].timezone,
       String(days)
     ]
     dateShiftProcess.running = true
@@ -213,15 +221,21 @@ Item {
   function startMeeting() {
     if (meetingProcess.running || !root.meetingQueued) return
     root.meetingQueued = false
+    var payload = Model.helperLocationsPayload(root.locations)
+    if (!payload) {
+      root.errorMessage = "Location settings exceed the safe helper limits."
+      return
+    }
     root.activeMeetingStart = Math.round(root.planningTimestamp)
     root.activeMeetingDuration = root.meetingDurationMinutes
+    root.activeMeetingLocations = payload.locations
     meetingProcess.command = [
       "python3",
       root.helperPath,
       "meeting",
       String(root.activeMeetingStart),
       String(root.activeMeetingDuration),
-      JSON.stringify(root.locations)
+      payload.serialized
     ]
     meetingProcess.running = true
   }
@@ -251,13 +265,19 @@ Item {
   function startTimeline() {
     if (timelineProcess.running || !root.timelineQueued) return
     root.timelineQueued = false
+    var payload = Model.helperLocationsPayload(root.locations)
+    if (!payload) {
+      root.errorMessage = "Location settings exceed the safe helper limits."
+      return
+    }
     root.activeTimelineStart = Math.round(root.timelineStartTimestamp)
+    root.activeTimelineLocations = payload.locations
     timelineProcess.command = [
       "python3",
       root.helperPath,
       "timeline",
       String(root.activeTimelineStart),
-      JSON.stringify(root.locations),
+      payload.serialized,
       "--hours",
       "24",
       "--step-minutes",
@@ -269,13 +289,19 @@ Item {
   function startRender() {
     if (renderProcess.running || !root.renderQueued) return
     root.renderQueued = false
+    var payload = Model.helperLocationsPayload(root.locations)
+    if (!payload) {
+      root.errorMessage = "Location settings exceed the safe helper limits."
+      return
+    }
     root.activeRenderTimestamp = Math.round(root.planningTimestamp)
+    root.activeRenderLocations = payload.locations
     renderProcess.command = [
       "python3",
       root.helperPath,
       "render",
       String(root.activeRenderTimestamp),
-      JSON.stringify(root.locations)
+      payload.serialized
     ]
     renderProcess.running = true
   }
@@ -333,9 +359,16 @@ Item {
         var raw = String(text || "").trim()
         if (!root.settingsReady || raw === ""
             || (Array.isArray(root.settings.locations) && root.settings.locations.length > 0)) return
+        if (!Model.helperOutputAllowed(raw)) {
+          root.errorMessage = "Timezone detection returned too much data."
+          return
+        }
         try {
           var result = JSON.parse(raw)
-          if (result.timezone) root.persistLocations(Model.defaultLocations(result.timezone))
+          var timezone = Model.sanitizedDetectedTimezone(result)
+          if (timezone !== "") root.persistLocations(Model.defaultLocations(timezone))
+          else root.errorMessage = Model.helperResultError(result)
+            || "Could not detect the local timezone."
         } catch (error) {
           root.errorMessage = "Could not detect the local timezone."
         }
@@ -354,17 +387,24 @@ Item {
       onStreamFinished: {
         var raw = String(text || "").trim()
         if (raw === "") return
+        if (!Model.helperOutputAllowed(raw)) {
+          root.errorMessage = "Timezone conversion returned too much data."
+          return
+        }
         try {
           var result = JSON.parse(raw)
-          if (result.error) {
-            root.errorMessage = result.error
+          var resultError = Model.helperResultError(result)
+          if (resultError !== "") {
+            root.errorMessage = resultError
             return
           }
-          if (Number(result.timestampMs) !== root.activeRenderTimestamp) return
           if (root.activeRenderTimestamp !== Math.round(root.planningTimestamp)) return
-          root.renderedTimestamp = Number(result.timestampMs)
-          root.renderedRows = result.rows || []
-          root.calendarData = result.calendar || { monthLabel: "", weekNumber: 0, days: [] }
+          var sanitized = Model.sanitizedRenderResult(
+            result, root.activeRenderTimestamp, root.activeRenderLocations)
+          if (!sanitized) throw new Error("invalid render result")
+          root.renderedTimestamp = sanitized.timestampMs
+          root.renderedRows = sanitized.rows
+          root.calendarData = sanitized.calendar
           root.errorMessage = ""
         } catch (error) {
           root.errorMessage = "Timezone conversion returned invalid data."
@@ -385,14 +425,21 @@ Item {
       onStreamFinished: {
         var raw = String(text || "").trim()
         if (raw === "") return
+        if (!Model.helperOutputAllowed(raw)) {
+          root.errorMessage = "Date conversion returned too much data."
+          return
+        }
         try {
           var result = JSON.parse(raw)
-          if (result.error) {
-            root.errorMessage = result.error
+          var resultError = Model.helperResultError(result)
+          if (resultError !== "") {
+            root.errorMessage = resultError
             return
           }
-          root.dayAnchorTimestamp = Number(result.timestampMs) - root.dateShiftOffset * 60000
-          root.errorMessage = result.normalized
+          var sanitized = Model.sanitizedShiftDateResult(result)
+          if (!sanitized) throw new Error("invalid date shift result")
+          root.dayAnchorTimestamp = sanitized.timestampMs - root.dateShiftOffset * 60000
+          root.errorMessage = sanitized.normalized
             ? "That local time falls in a DST gap, so it was moved forward."
             : ""
         } catch (error) {
@@ -413,14 +460,21 @@ Item {
       onStreamFinished: {
         var raw = String(text || "").trim()
         if (raw === "") return
+        if (!Model.helperOutputAllowed(raw)) {
+          root.errorMessage = "Timeline conversion returned too much data."
+          return
+        }
         try {
           var result = JSON.parse(raw)
-          if (result.error) {
-            root.errorMessage = result.error
+          var resultError = Model.helperResultError(result)
+          if (resultError !== "") {
+            root.errorMessage = resultError
             return
           }
-          if (Number(result.startTimestampMs) !== root.activeTimelineStart) return
-          root.timelineData = result
+          var sanitized = Model.sanitizedTimelineResult(
+            result, root.activeTimelineStart, root.activeTimelineLocations)
+          if (!sanitized) throw new Error("invalid timeline result")
+          root.timelineData = sanitized
           root.errorMessage = ""
         } catch (error) {
           root.errorMessage = "Timeline conversion returned invalid data."
@@ -441,17 +495,24 @@ Item {
       onStreamFinished: {
         var raw = String(text || "").trim()
         if (raw === "") return
+        if (!Model.helperOutputAllowed(raw)) {
+          root.errorMessage = "Meeting conversion returned too much data."
+          return
+        }
         try {
           var result = JSON.parse(raw)
-          if (result.error) {
-            root.errorMessage = result.error
+          var resultError = Model.helperResultError(result)
+          if (resultError !== "") {
+            root.errorMessage = resultError
             return
           }
-          if (Number(result.startTimestampMs) !== root.activeMeetingStart
-              || Number(result.durationMinutes) !== root.activeMeetingDuration) return
           if (root.activeMeetingStart !== Math.round(root.planningTimestamp)
               || root.activeMeetingDuration !== root.meetingDurationMinutes) return
-          root.meetingData = result
+          var sanitized = Model.sanitizedMeetingResult(
+            result, root.activeMeetingStart, root.activeMeetingDuration,
+            root.activeMeetingLocations)
+          if (!sanitized) throw new Error("invalid meeting result")
+          root.meetingData = sanitized
           root.errorMessage = ""
         } catch (error) {
           root.errorMessage = "Meeting time conversion returned invalid data."

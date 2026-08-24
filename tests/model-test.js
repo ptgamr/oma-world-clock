@@ -1,6 +1,13 @@
 const assert = require("node:assert/strict")
 const Model = require("../Model.js")
 
+const securityLimits = Model.securityLimits()
+assert.equal(securityLimits.maxLocations, 12)
+assert.equal(securityLimits.maxLocationNameLength, 80)
+assert.equal(securityLimits.maxLocationsJsonBytes, 8192)
+assert.equal(securityLimits.maxHelperOutputBytes, 256 * 1024)
+assert.equal(Model.utf8ByteLength("Auckland 🌏"), 13)
+
 const defaults = Model.defaultLocations("Asia/Ho_Chi_Minh")
 assert.equal(defaults.length, 3)
 assert.deepEqual(defaults.map(location => location.id), [
@@ -57,6 +64,35 @@ const duplicateHomes = Model.normalizeLocations([
   { id: "two", name: "Two", timezone: "Europe/London", isHome: true }
 ])
 assert.equal(duplicateHomes.filter(location => location.isHome).length, 1)
+
+const excessiveLocations = Array.from({ length: securityLimits.maxLocations + 8 }, (_, index) => ({
+  id: "location-" + index,
+  name: "Location " + index,
+  timezone: "Etc/UTC",
+  isHome: index === 0
+}))
+const boundedLocations = Model.normalizeLocations(excessiveLocations)
+assert.equal(boundedLocations.length, securityLimits.maxLocations)
+assert.equal(Model.addLocation(boundedLocations, "Extra", "Europe/London").length,
+  securityLimits.maxLocations)
+
+const boundedFields = Model.normalizeLocations([{
+  id: "i".repeat(securityLimits.maxLocationIdLength + 20),
+  name: "n".repeat(securityLimits.maxLocationNameLength + 20),
+  timezone: "Etc/UTC",
+  isHome: true
+}])
+assert.equal(boundedFields[0].id.length, securityLimits.maxLocationIdLength)
+assert.equal(boundedFields[0].name.length, securityLimits.maxLocationNameLength)
+
+const helperPayload = Model.helperLocationsPayload(boundedLocations)
+assert.ok(helperPayload)
+assert.ok(Model.utf8ByteLength(helperPayload.serialized) <= securityLimits.maxLocationsJsonBytes)
+assert.equal(helperPayload.locations.length, securityLimits.maxLocations)
+assert.equal(Model.helperOutputAllowed("x".repeat(securityLimits.maxHelperOutputBytes)), true)
+assert.equal(Model.helperOutputAllowed("x".repeat(securityLimits.maxHelperOutputBytes + 1)), false)
+assert.equal(Model.boundedSearchQuery("q".repeat(100)).length,
+  securityLimits.maxSearchQueryLength)
 
 const migratedCoordinates = Model.normalizeLocations([
   { id: "hanoi", name: "Hanoi", timezone: "Asia/Ho_Chi_Minh", isHome: true },
@@ -168,5 +204,107 @@ const metadataRow = {
 }
 assert.equal(Model.metadataForRow(metadataRow, true, true), "Yesterday · −5h · CEST")
 assert.equal(Model.metadataForRow(metadataRow, true, true, false), "−5h · CEST")
+
+const resultLocation = Model.normalizeLocations([
+  { id: "home", name: "<b>Home</b>", timezone: "Etc/UTC", isHome: true }
+])
+const resultTimestamp = Date.UTC(2026, 7, 25, 12, 0)
+const calendarDays = Array.from({ length: 7 }, (_, index) => ({
+  date: `2026-08-${23 + index}`,
+  weekday: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][index],
+  day: 23 + index,
+  offsetDays: index - 2,
+  isSelected: index === 2,
+  isAdjacentMonth: false
+}))
+const renderResult = {
+  timestampMs: resultTimestamp,
+  homeDate: "2026-08-25",
+  homeDateLabel: "Tue 25 Aug 2026",
+  ignored: "not retained",
+  calendar: { monthLabel: "August 2026", weekNumber: 35, days: calendarDays },
+  rows: [{
+    id: "home",
+    name: "<b>Home</b>",
+    timezone: "Etc/UTC",
+    isHome: true,
+    date: "2026-08-25",
+    dateLabel: "Tue 25 Aug 2026",
+    weekday: "Tuesday",
+    time: "12:00",
+    time12: "12:00",
+    period: "PM",
+    hour: 12,
+    minute: 0,
+    latitude: null,
+    longitude: null,
+    isWeekend: false,
+    utcOffsetMinutes: 0,
+    offsetDifferenceMinutes: 0,
+    abbreviation: "UTC",
+    dayRelation: "Today"
+  }]
+}
+const sanitizedRender = Model.sanitizedRenderResult(
+  renderResult, resultTimestamp, resultLocation)
+assert.ok(sanitizedRender)
+assert.equal(sanitizedRender.ignored, undefined)
+assert.equal(sanitizedRender.rows[0].name, "<b>Home</b>")
+assert.equal(Model.sanitizedRenderResult({ ...renderResult, rows: [] },
+  resultTimestamp, resultLocation), null)
+assert.equal(Model.sanitizedSearchResults(Array.from({ length: 7 }, () => ({
+  name: "UTC", timezone: "Etc/UTC", country: ""
+}))), null)
+assert.equal(Model.sanitizedDetectedTimezone({ timezone: "x".repeat(129) }), "")
+
+const timelineCells = Array.from({ length: 48 }, (_, index) => ({
+  offsetMinutes: index * 30,
+  timestampMs: resultTimestamp + index * 30 * 60000,
+  date: "2026-08-25",
+  weekday: "Tuesday",
+  time: "12:00",
+  time12: "12:00",
+  period: "PM",
+  hour: 12,
+  minute: 0,
+  isWeekend: false,
+  isDaytime: true,
+  availability: "work"
+}))
+const timelineResult = {
+  startTimestampMs: resultTimestamp,
+  endTimestampMs: resultTimestamp + 24 * 60 * 60 * 1000,
+  hours: 24,
+  stepMinutes: 30,
+  slotCount: 48,
+  ticks: Array.from({ length: 5 }, (_, index) => ({
+    offsetMinutes: index * 6 * 60,
+    time: "12:00",
+    weekday: "Tue",
+    date: "2026-08-25"
+  })),
+  rows: [{ ...resultLocation[0], cells: timelineCells }]
+}
+assert.ok(Model.sanitizedTimelineResult(timelineResult, resultTimestamp, resultLocation))
+timelineResult.rows[0].cells[0].availability = "oversized"
+assert.equal(Model.sanitizedTimelineResult(timelineResult, resultTimestamp, resultLocation), null)
+
+const meetingResult = {
+  startTimestampMs: resultTimestamp,
+  endTimestampMs: resultTimestamp + 60 * 60000,
+  durationMinutes: 60,
+  homeDate: "2026-08-25",
+  homeDateLabel: "Tuesday, 25 August 2026",
+  rows: [{
+    ...resultLocation[0],
+    startDate: "2026-08-25",
+    startWeekday: "Tuesday",
+    range12: "12:00 PM–1:00 PM",
+    range24: "12:00–13:00",
+    abbreviation: "UTC"
+  }]
+}
+assert.ok(Model.sanitizedMeetingResult(
+  meetingResult, resultTimestamp, 60, resultLocation))
 
 console.log("Model tests passed")

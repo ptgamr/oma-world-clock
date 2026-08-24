@@ -212,6 +212,7 @@ BorderSurface {
       spacing: Style.space(9)
 
       Text {
+        textFormat: Text.PlainText
         text: "WORLD MAP"
         color: root.foreground
         font.family: root.fontFamily
@@ -221,6 +222,7 @@ BorderSurface {
       }
 
       Text {
+        textFormat: Text.PlainText
         text: "DAY / NIGHT AT SELECTED TIME"
         color: Qt.darker(root.foreground, 1.45)
         font.family: root.fontFamily
@@ -229,6 +231,7 @@ BorderSurface {
     }
 
     Text {
+      textFormat: Text.PlainText
       anchors.right: parent.right
       anchors.top: parent.top
       width: Math.min(parent.width * 0.46, Style.space(390))
@@ -452,6 +455,7 @@ BorderSurface {
               : Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.28)
 
             Text {
+              textFormat: Text.PlainText
               id: markerLabel
               anchors.centerIn: parent
               text: marker.modelData.name + "  " + root.displayTime(marker.modelData)
@@ -492,6 +496,7 @@ BorderSurface {
         border.color: root.accent
 
         Text {
+          textFormat: Text.PlainText
           id: hoverText
           anchors.centerIn: parent
           text: root.hoverTimezone
@@ -524,6 +529,7 @@ BorderSurface {
           spacing: Style.space(3)
 
           Text {
+            textFormat: Text.PlainText
             width: parent.width
             elide: Text.ElideRight
             text: root.selectedName
@@ -534,6 +540,7 @@ BorderSurface {
           }
 
           Text {
+            textFormat: Text.PlainText
             width: parent.width
             elide: Text.ElideRight
             text: root.selectedTimezone
@@ -561,6 +568,7 @@ BorderSurface {
       }
 
       Text {
+        textFormat: Text.PlainText
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.margins: Style.space(7)
@@ -572,6 +580,7 @@ BorderSurface {
       }
 
       Text {
+        textFormat: Text.PlainText
         visible: root.mapDataError !== ""
         anchors.centerIn: parent
         text: root.mapDataError

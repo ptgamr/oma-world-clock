@@ -59,6 +59,7 @@ BorderSurface {
     anchors.margins: Style.space(12)
 
     Text {
+      textFormat: Text.PlainText
       anchors.left: parent.left
       anchors.bottom: timelineRows.top
       anchors.bottomMargin: Style.space(8)
@@ -81,6 +82,7 @@ BorderSurface {
         model: root.timeline.ticks || []
 
         Text {
+          textFormat: Text.PlainText
           required property var modelData
           x: Math.max(0, Math.min(axis.width - implicitWidth,
             modelData.offsetMinutes / (24 * 60) * axis.width - implicitWidth / 2))
@@ -119,6 +121,7 @@ BorderSurface {
               spacing: Style.space(2)
 
               Text {
+                textFormat: Text.PlainText
                 text: modelData.name
                 color: root.foreground
                 font.family: root.fontFamily
@@ -129,6 +132,7 @@ BorderSurface {
               }
 
               Text {
+                textFormat: Text.PlainText
                 readonly property var selectedRow: root.service
                   ? root.service.renderedRow(modelData.id) : null
                 text: selectedRow
@@ -247,6 +251,7 @@ BorderSurface {
         border.color: root.accent
 
         Text {
+          textFormat: Text.PlainText
           id: selectedText
           anchors.centerIn: parent
           text: root.selectedLabel()
@@ -283,6 +288,7 @@ BorderSurface {
           }
 
           Text {
+            textFormat: Text.PlainText
             text: modelData.label
             color: Qt.darker(root.foreground, 1.35)
             font.family: root.fontFamily

@@ -161,6 +161,7 @@ Item {
                 spacing: Style.space(3)
 
                 Text {
+                  textFormat: Text.PlainText
                   text: "WORLD CLOCK PLANNER"
                   color: root.foreground
                   font.family: root.fontFamily
@@ -170,6 +171,7 @@ Item {
                 }
 
                 Text {
+                  textFormat: Text.PlainText
                   text: root.service && root.service.homeLocation
                     ? "Home · " + root.service.homeLocation.name
                     : "Loading clocks…"
@@ -235,6 +237,7 @@ Item {
                         spacing: Style.space(7)
 
                         Text {
+                          textFormat: Text.PlainText
                           text: modelData.name
                           color: root.foreground
                           font.family: root.fontFamily
@@ -253,6 +256,7 @@ Item {
                             root.foreground, root.accent, root.urgent)
 
                           Text {
+                            textFormat: Text.PlainText
                             id: fullHomeBadge
                             anchors.centerIn: parent
                             text: "HOME"
@@ -269,6 +273,7 @@ Item {
                         spacing: Style.space(5)
 
                         Text {
+                          textFormat: Text.PlainText
                           text: root.displayTime(parent.parent.parent.rendered)
                           color: root.foreground
                           font.family: root.fontFamily
@@ -277,6 +282,7 @@ Item {
                         }
 
                         Text {
+                          textFormat: Text.PlainText
                           anchors.baseline: parent.children[0].baseline
                           text: root.displayPeriod(parent.parent.parent.rendered)
                           color: root.foreground
@@ -287,6 +293,7 @@ Item {
                       }
 
                       Text {
+                        textFormat: Text.PlainText
                         text: parent.parent.rendered
                           ? parent.parent.rendered.weekday + " · " + parent.parent.rendered.abbreviation
                           : modelData.timezone
@@ -314,6 +321,7 @@ Item {
                 spacing: Style.space(3)
 
                 Text {
+                  textFormat: Text.PlainText
                   text: "MEETING TIME"
                   color: root.foreground
                   font.family: root.fontFamily
@@ -323,6 +331,7 @@ Item {
                 }
 
                 Text {
+                  textFormat: Text.PlainText
                   text: root.service && root.service.meetingData.homeDateLabel
                     ? root.service.meetingData.homeDateLabel
                     : "Choose a start time on the timeline"
@@ -350,6 +359,7 @@ Item {
                 }
 
                 Text {
+                  textFormat: Text.PlainText
                   width: Style.space(88)
                   anchors.verticalCenter: parent.verticalCenter
                   horizontalAlignment: Text.AlignHCenter
@@ -373,6 +383,7 @@ Item {
                 Item { width: Style.space(7); height: 1 }
 
                 Text {
+                  textFormat: Text.PlainText
                   visible: root.service && root.service.copyStatus !== ""
                   anchors.verticalCenter: parent.verticalCenter
                   text: root.service ? root.service.copyStatus : ""
