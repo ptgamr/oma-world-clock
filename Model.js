@@ -237,6 +237,19 @@ function movedSelection(index, count, delta, cursorActive) {
   return clampedIndex(Number(index || 0) + Number(delta || 0), length)
 }
 
+function pointerMoved(fromX, fromY, toX, toY, threshold) {
+  var previousX = Number(fromX)
+  var previousY = Number(fromY)
+  var currentX = Number(toX)
+  var currentY = Number(toY)
+  if (!isFinite(previousX) || !isFinite(previousY)
+      || !isFinite(currentX) || !isFinite(currentY)) return true
+  var minimum = Math.max(0, Number(threshold || 0))
+  var deltaX = currentX - previousX
+  var deltaY = currentY - previousY
+  return deltaX * deltaX + deltaY * deltaY > minimum * minimum
+}
+
 function reorderOffset(index, from, to, step) {
   var row = Number(index)
   var source = Number(from)
@@ -407,6 +420,7 @@ if (typeof module !== "undefined") {
     setHomeLocation: setHomeLocation,
     clampedIndex: clampedIndex,
     movedSelection: movedSelection,
+    pointerMoved: pointerMoved,
     reorderOffset: reorderOffset,
     previewRenderedRows: previewRenderedRows,
     clampPlannerMinutes: clampPlannerMinutes,

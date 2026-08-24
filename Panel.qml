@@ -78,6 +78,9 @@ Panel {
   readonly property bool reorderBusy: reorderAnimating || dragReordering
   readonly property int reorderDuration: 180
   readonly property int dragDisplaceDuration: 110
+  property bool locationHoverSuppressed: false
+  property point lastLocationPointer: Qt.point(Number.NaN, Number.NaN)
+  readonly property real pointerMovementThreshold: 0.5
 
   property var timezoneSuggestions: []
   property int suggestionIndex: 0
@@ -104,6 +107,8 @@ Panel {
 
   function close() {
     root.setCenterHoverRevealSuppressed(false)
+    root.locationHoverSuppressed = false
+    root.lastLocationPointer = Qt.point(Number.NaN, Number.NaN)
     root.cancelEditors()
     root.managingLocations = false
     root.showingSettings = false
@@ -184,8 +189,53 @@ Panel {
     root.revealSelection()
   }
 
+  function suppressLocationHover() {
+    root.locationHoverSuppressed = true
+  }
+
+  function locationAtPointer(position) {
+    if (!clockRepeater || !position) return -1
+    for (var index = 0; index < root.locations.length; index++) {
+      var item = clockRepeater.itemAt(index)
+      if (!item || !item.visible) continue
+      var local = item.mapFromItem(keyCatcher, position.x, position.y)
+      if (local.x >= 0 && local.x <= item.width && local.y >= 0 && local.y <= item.height)
+        return index
+    }
+    return -1
+  }
+
+  function trackLocationPointer(position) {
+    if (!position) return false
+    var moved = Model.pointerMoved(
+      root.lastLocationPointer.x, root.lastLocationPointer.y,
+      position.x, position.y, root.pointerMovementThreshold)
+    root.lastLocationPointer = Qt.point(position.x, position.y)
+    if (!root.locationHoverSuppressed || !moved) return moved
+    root.locationHoverSuppressed = false
+    var index = root.locationAtPointer(position)
+    if (index >= 0) root.selectLocation(index)
+    return moved
+  }
+
+  function handleLocationPointer(index, item, mouseArea) {
+    var position = item.mapToItem(keyCatcher, mouseArea.mouseX, mouseArea.mouseY)
+    var moved = root.trackLocationPointer(position)
+    if (root.locationHoverSuppressed && !moved) return
+    root.locationHoverSuppressed = false
+    root.selectLocation(index)
+  }
+
+  function clickLocation(index, item, mouseArea) {
+    var position = item.mapToItem(keyCatcher, mouseArea.mouseX, mouseArea.mouseY)
+    root.lastLocationPointer = Qt.point(position.x, position.y)
+    root.locationHoverSuppressed = false
+    root.selectLocation(index)
+  }
+
   function moveSelection(delta) {
     if (root.editorOpen || root.reorderBusy || root.locations.length === 0) return
+    root.suppressLocationHover()
     root.selectedIndex = Model.movedSelection(
       root.selectedIndex, root.locations.length, delta, root.cursorActive)
     root.cursorActive = true
@@ -289,6 +339,7 @@ Panel {
     if (root.editorOpen || root.reorderBusy || from < 0 || from >= root.locations.length) return
     var target = Model.clampedIndex(to, root.locations.length)
     if (target < 0 || from === target) return
+    root.suppressLocationHover()
     var source = root.locations[from]
     root.reorderedLocations = Model.moveLocation(root.locations, source.id, target - from)
     root.cursorActive = true
@@ -623,6 +674,11 @@ Panel {
       anchors.fill: parent
       color: Color.popups.background
       focus: true
+
+      HoverHandler {
+        onPointChanged: root.trackLocationPointer(point.position)
+      }
+
       Keys.priority: Keys.BeforeItem
       Keys.onPressed: function(event) {
         if (root.editorOpen) return
@@ -1107,12 +1163,17 @@ Panel {
                 }
 
                 MouseArea {
+                  id: clockMouseArea
                   anchors.fill: parent
                   hoverEnabled: true
                   enabled: !root.reorderAnimating
                   cursorShape: root.locations.length > 1 ? Qt.OpenHandCursor : Qt.ArrowCursor
-                  onEntered: root.selectLocation(clockCard.index)
-                  onClicked: root.selectLocation(clockCard.index)
+                  onEntered: root.handleLocationPointer(
+                    clockCard.index, clockCard, clockMouseArea)
+                  onPositionChanged: root.handleLocationPointer(
+                    clockCard.index, clockCard, clockMouseArea)
+                  onClicked: root.clickLocation(
+                    clockCard.index, clockCard, clockMouseArea)
                 }
 
                 DragHandler {
