@@ -6,6 +6,8 @@ or analog clocks.
 
 It works alongside the built-in `omarchy.clock`; it does not replace it.
 
+Published here: https://omarchyplugins.com/plugin.html?id=io.github.ptgamr.world-clock
+
 <img src="preview.png" alt="Omarchy World Clock panel" width="480">
 
 ## Features
